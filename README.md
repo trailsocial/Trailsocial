@@ -4,8 +4,11 @@ A RuneLite plugin for the most optimal gaming gamers
 
 ## What it has
 
-- Bankstanding XP
-- Gilded Chains Counter
+- Bankstanding XP - a joke skill for idling near a bank
+- Clan Hall stats - balloons burst, gilded chains picked up, wealth looted, time spent sitting
+- Bossing/raid death counter (CoX, ToB, ToA, and real boss NPCs)
+- Gnome kill counter, Trailblazer cane held-time tracker
+- Live trailsocial.net event notifications - sidebar badge, in-game popup, login splash
 - Much More, and More To Come
 
 
