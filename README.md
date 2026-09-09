@@ -1,30 +1,13 @@
 # TrailSocial
 
-A RuneLite plugin for the TrailBlazer Social Club: a joke "Bankstanding" skill,
-Clan Hall and bossing stat tracking, and trailsocial.net event notifications.
+A RuneLite plugin for the most optimal gaming gamers
 
-## How it works
+## What it has
 
-- Every game tick, checks whether your player is within a configurable radius
-  (default 12 tiles) of any bank object (bank booth, chest, counter, table, GE
-  booth, etc. - detected dynamically by scanning nearby scene tiles, not a
-  hardcoded location list, so it works everywhere including minigames/instances).
-- If you're near a bank and haven't moved for a configurable idle threshold
-  (default 30 seconds), you start slowly accruing "Bankstanding" XP.
-- XP accrues at a configurable, deliberately slow rate (default 300 xp/hour -
-  similar vibe to Agility, just for standing still).
-- The skill caps at level 99 / 200,000 xp, using the same growth curve shape
-  as a real OSRS skill, just rescaled to a smaller max.
-- A side-panel button shows your current level, xp, progress bar, and status,
-  plus a checkbox to toggle the in-game overlay box.
-- An in-game overlay box (draggable, like any RuneLite overlay) shows the same
-  info live, and can be toggled from the panel or the plugin's config.
-- Progress is saved per RuneOScape account and persists across sessions.
-- Chat message + tray notification on level up (toggleable in config).
-- Fake XP drop popup (icon + "+1 Bankstanding", fades out) each time you earn
-  a whole point of XP, mimicking a real skill's xp drop. Toggleable via the
-  "Show XP drops" config option - the real xp-drop widget only knows about
-  the 23 actual skills, so this is a custom overlay built to look the same.
+- Bankstanding XP
+- Gilded Chains Counter
+- Much More, and More To Come
+
 
 ## Project layout
 
