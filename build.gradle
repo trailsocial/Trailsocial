@@ -16,17 +16,26 @@ repositories {
 def runeLiteVersion = 'latest.release'
 def pluginMainClass = 'com.bankstandingxp.BankstandingXPPluginTest'
 
+// The Plugin Hub's build only has a fixed set of pre-verified (checksummed)
+// Lombok versions available (up to 1.18.30 as of writing) - anything newer
+// fails its dependency verification step. But 1.18.30 doesn't understand
+// very new JDKs' internal javac API shape (breaks with a TypeTag error on
+// JDK 26+ locally). System.getenv("runelite.pluginhub.package.buildDir") is
+// only set when the Hub's packager is doing the build, so use the verified
+// version there and a newer one for local development otherwise.
+def lombokVersion = System.getenv("runelite.pluginhub.package.buildDir") != null ? '1.18.30' : '1.18.48'
+
 dependencies {
 	compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
 
-	compileOnly 'org.projectlombok:lombok:1.18.48'
-	annotationProcessor 'org.projectlombok:lombok:1.18.48'
+	compileOnly "org.projectlombok:lombok:$lombokVersion"
+	annotationProcessor "org.projectlombok:lombok:$lombokVersion"
 
 	testImplementation 'junit:junit:4.13.2'
 	testImplementation group: 'net.runelite', name: 'client', version: runeLiteVersion
 	testImplementation group: 'net.runelite', name: 'jshell', version: runeLiteVersion
-	testCompileOnly 'org.projectlombok:lombok:1.18.48'
-	testAnnotationProcessor 'org.projectlombok:lombok:1.18.48'
+	testCompileOnly "org.projectlombok:lombok:$lombokVersion"
+	testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
 }
 
 group = 'com.bankstandingxp'
