@@ -64,11 +64,3 @@ gradlew.bat build
 
 (You'll need a Gradle wrapper - run `gradle wrapper` once if `gradlew.bat`
 isn't present, or just open the project in IntelliJ which bundles Gradle.)
-
-## Submitting to the Plugin Hub (optional)
-
-To publish this for other people to install from the in-client Plugin Hub,
-fork [runelite/plugin-hub](https://github.com/runelite/plugin-hub), add a
-`plugins/bankstanding-xp` entry pointing at this repo, and follow their
-`README.md` submission steps. Update `author` in `runelite-plugin.properties`
-first.
