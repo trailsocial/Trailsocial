@@ -11,7 +11,7 @@ A RuneLite plugin for the most optimal gaming gamers
 
 ## Project layout
 
-Standard RuneLite plugin template (same shape as RuneLite's official
+Standard RuneLite plugin template
 [example-plugin](https://github.com/runelite/example-plugin)):
 
 ```
