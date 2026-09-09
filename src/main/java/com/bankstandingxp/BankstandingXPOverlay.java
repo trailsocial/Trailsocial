@@ -27,7 +27,7 @@ public class BankstandingXPOverlay extends OverlayPanel
 	@Override
 	public Dimension render(Graphics2D graphics)
 	{
-		if (!config.showOverlay())
+		if (!config.showOverlay() || !plugin.isNearBank())
 		{
 			return null;
 		}

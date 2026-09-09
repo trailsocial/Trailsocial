@@ -37,7 +37,7 @@ public class BankstandingXpDropOverlay extends Overlay
 	private BankstandingXpDropOverlay(BankstandingXPConfig config)
 	{
 		this.config = config;
-		this.icon = ImageUtil.loadImageResource(getClass(), "icon.png");
+		this.icon = ImageUtil.loadImageResource(getClass(), "bank_icon.png");
 		setPosition(OverlayPosition.TOP_LEFT);
 		setLayer(OverlayLayer.ABOVE_WIDGETS);
 	}

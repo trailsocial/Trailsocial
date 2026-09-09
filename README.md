@@ -1,6 +1,7 @@
-# Bankstanding XP
+# TrailSocial
 
-A RuneLite plugin that turns standing around at the bank into its own joke skill.
+A RuneLite plugin for the TrailBlazer Social Club: a joke "Bankstanding" skill,
+Clan Hall and bossing stat tracking, and trailsocial.net event notifications.
 
 ## How it works
 

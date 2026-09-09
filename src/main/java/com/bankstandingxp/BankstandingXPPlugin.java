@@ -1,12 +1,28 @@
 package com.bankstandingxp;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.google.inject.Provides;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.swing.SwingUtilities;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.Constants;
@@ -14,35 +30,51 @@ import net.runelite.api.DecorativeObject;
 import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
 import net.runelite.api.GroundObject;
+import net.runelite.api.Item;
+import net.runelite.api.ItemContainer;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
 import net.runelite.api.ObjectComposition;
 import net.runelite.api.Player;
 import net.runelite.api.Scene;
+import net.runelite.api.gameval.AnimationID;
+import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.SpotanimID;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.Tile;
 import net.runelite.api.WallObject;
 import net.runelite.api.WorldView;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.events.ActorDeath;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
+import net.runelite.api.events.ItemContainerChanged;
+import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.client.Notifier;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ImageUtil;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 @Slf4j
 @PluginDescriptor(
-	name = "Bankstanding XP",
-	description = "Tracks how long you stand idle near a bank and levels up a joke 'Bankstanding' skill for it",
-	tags = {"bank", "xp", "level", "skill", "afk", "idle", "meme", "bankstanding"}
+	name = "TrailSocial",
+	description = "A joke Bankstanding skill, Clan Hall/bossing stat tracking, and trailsocial.net event notifications",
+	tags = {"trailsocial", "bank", "xp", "level", "skill", "afk", "idle", "meme", "clan hall", "events"}
 )
 public class BankstandingXPPlugin extends Plugin
 {
@@ -52,8 +84,38 @@ public class BankstandingXPPlugin extends Plugin
 	private static final int BANK_RADIUS = 12;
 	private static final int IDLE_THRESHOLD_SECONDS = 30;
 
+	// Derived from the OSRS wiki's Clan Hall coordinates (1760, 5473): regionId = (x >> 6 << 8) | (y >> 6)
+	private static final int CLAN_HALL_REGION_ID = 6997;
+	// Gilded chainbody, per the official Grand Exchange item id (obj=20149)
+	private static final int GILDED_CHAINBODY_ITEM_ID = 20149;
+	// Trailblazer cane (tier 3 Leagues relic hunter reward), per the official Grand Exchange item id (obj=25013)
+	private static final int TRAILBLAZER_CANE_ITEM_ID = 25013;
+
+	private static final String EVENTS_URL = "https://trailsocial.net/.netlify/functions/get-event";
+	private static final int EVENTS_POLL_INITIAL_DELAY_SECONDS = 15;
+	private static final int EVENTS_POLL_PERIOD_SECONDS = 300;
+	private static final Type EVENT_LIST_TYPE = new TypeToken<List<TrailSocialEvent>>()
+	{
+	}.getType();
+	private static final Set<Integer> SITTING_ANIMATION_IDS = Set.of(
+		AnimationID.SITTING_READY,
+		AnimationID.SITTING_READY_NORTH,
+		AnimationID.SITTING_READY_EAST,
+		AnimationID.SITTING_READY_SOUTH,
+		AnimationID.SITTING_READY_WEST,
+		AnimationID.SITTING_READY_BACKWARDS,
+		AnimationID.HUMAN_SITTINGDOWN_READY,
+		AnimationID.HUMAN_SITTINGDOWN_SCRATCH,
+		AnimationID.HUMAN_SITTINGDOWN_THINK,
+		AnimationID.HUMAN_SITTINGDOWN_MOVE,
+		AnimationID.SITTING_EATING
+	);
+
 	@Inject
 	private Client client;
+
+	@Inject
+	private BossRaidStatsOverlay bossRaidOverlay;
 
 	@Inject
 	private ClientToolbar clientToolbar;
@@ -74,13 +136,42 @@ public class BankstandingXPPlugin extends Plugin
 	private BankstandingXpDropOverlay xpDropOverlay;
 
 	@Inject
+	private ClanHallStatsOverlay clanHallOverlay;
+
+	@Inject
 	private BankstandingXPConfig config;
+
+	@Inject
+	private ItemManager itemManager;
+
+	@Inject
+	private EventSplashOverlay eventSplashOverlay;
+
+	@Inject
+	private OkHttpClient okHttpClient;
+
+	@Inject
+	private ScheduledExecutorService executor;
+
+	@Inject
+	private Gson gson;
+
+	@Inject
+	private ClientThread clientThread;
 
 	private final Map<Integer, Boolean> bankObjectCache = new HashMap<>();
 	private final Map<Integer, Boolean> bankNpcCache = new HashMap<>();
+	private final Map<Integer, Integer> lastInventoryCounts = new HashMap<>();
+	private final Set<String> knownEventIds = new HashSet<>();
 
 	private BankstandingXPPanel panel;
 	private NavigationButton navButton;
+	private BufferedImage normalNavIcon;
+	private BufferedImage badgedNavIcon;
+	private ScheduledFuture<?> eventsPollTask;
+	private List<TrailSocialEvent> recentEvents = List.of();
+	private boolean hasUnseenEvents = false;
+	private boolean splashShownThisSession = false;
 
 	private double xp = 0;
 	private long lastWholeXp = 0;
@@ -88,7 +179,21 @@ public class BankstandingXPPlugin extends Plugin
 	private int saveCounter = 0;
 	private long currentAccountHash = -1;
 	private WorldPoint lastLocation;
+
+	private boolean nearBank = false;
+	private boolean inClanHall = false;
+	private long balloonsPopped = 0;
+	private long gildedChainsPickedUp = 0;
+	private double secondsSpentSitting = 0;
+	private long clanHallWealthPickedUp = 0;
+	private double bankstandingSeconds = 0;
 	private BankstandingStatus status = BankstandingStatus.NOT_LOGGED_IN;
+
+	private boolean inRaid = false;
+	private boolean fightingBoss = false;
+	private long bossDeaths = 0;
+	private long gnomesKilled = 0;
+	private double caneHeldSeconds = 0;
 
 	@Provides
 	BankstandingXPConfig provideConfig(ConfigManager configManager)
@@ -108,17 +213,38 @@ public class BankstandingXPPlugin extends Plugin
 		xp = 0;
 		lastWholeXp = 0;
 		status = BankstandingStatus.NOT_LOGGED_IN;
+		nearBank = false;
+		inClanHall = false;
+		balloonsPopped = 0;
+		gildedChainsPickedUp = 0;
+		secondsSpentSitting = 0;
+		clanHallWealthPickedUp = 0;
+		bankstandingSeconds = 0;
+		lastInventoryCounts.clear();
+		inRaid = false;
+		fightingBoss = false;
+		splashShownThisSession = false;
+		hasUnseenEvents = false;
+		recentEvents = List.of();
+		knownEventIds.clear();
+		knownEventIds.addAll(loadKnownEventIds());
 
 		overlayManager.add(overlay);
 		overlayManager.add(xpDropOverlay);
+		overlayManager.add(clanHallOverlay);
+		overlayManager.add(bossRaidOverlay);
+		overlayManager.add(eventSplashOverlay);
 
-		panel = new BankstandingXPPanel(config, BANK_RADIUS, IDLE_THRESHOLD_SECONDS, this::onOverlayToggle, this::resetXp);
-		BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
+		BufferedImage logoImage = ImageUtil.loadImageResource(getClass(), "logo.png");
+		panel = new BankstandingXPPanel(config, logoImage, BANK_RADIUS, IDLE_THRESHOLD_SECONDS, this::onOverlayToggle, this::resetXp);
+		normalNavIcon = ImageUtil.loadImageResource(getClass(), "icon.png");
+		badgedNavIcon = createBadgedIcon(normalNavIcon);
 		navButton = NavigationButton.builder()
-			.tooltip("Bankstanding XP")
-			.icon(icon)
+			.tooltip("TrailSocial")
+			.icon(normalNavIcon)
 			.priority(6)
 			.panel(panel)
+			.onClick(this::acknowledgeEvents)
 			.build();
 		clientToolbar.addNavigation(navButton);
 
@@ -126,14 +252,25 @@ public class BankstandingXPPlugin extends Plugin
 		{
 			loadXp();
 		}
+
+		eventsPollTask = executor.scheduleWithFixedDelay(this::pollEvents,
+			EVENTS_POLL_INITIAL_DELAY_SECONDS, EVENTS_POLL_PERIOD_SECONDS, TimeUnit.SECONDS);
 	}
 
 	@Override
 	protected void shutDown()
 	{
 		saveXp();
+		if (eventsPollTask != null)
+		{
+			eventsPollTask.cancel(false);
+			eventsPollTask = null;
+		}
 		overlayManager.remove(overlay);
 		overlayManager.remove(xpDropOverlay);
+		overlayManager.remove(clanHallOverlay);
+		overlayManager.remove(bossRaidOverlay);
+		overlayManager.remove(eventSplashOverlay);
 		clientToolbar.removeNavigation(navButton);
 		panel = null;
 		navButton = null;
@@ -155,6 +292,158 @@ public class BankstandingXPPlugin extends Plugin
 		saveCounter = 0;
 		saveXp();
 		refreshPanel();
+	}
+
+	private void pollEvents()
+	{
+		Request request = new Request.Builder().url(EVENTS_URL).build();
+		okHttpClient.newCall(request).enqueue(new Callback()
+		{
+			@Override
+			public void onFailure(Call call, IOException e)
+			{
+				log.debug("Failed to fetch trailsocial.net events", e);
+			}
+
+			@Override
+			public void onResponse(Call call, Response response)
+			{
+				try (ResponseBody body = response.body())
+				{
+					if (!response.isSuccessful() || body == null)
+					{
+						return;
+					}
+
+					List<TrailSocialEvent> events = gson.fromJson(body.string(), EVENT_LIST_TYPE);
+					if (events == null)
+					{
+						return;
+					}
+
+					clientThread.invoke(() -> onEventsFetched(events));
+				}
+				catch (Exception e)
+				{
+					log.debug("Failed to parse trailsocial.net events", e);
+				}
+			}
+		});
+	}
+
+	private void onEventsFetched(List<TrailSocialEvent> events)
+	{
+		recentEvents = events;
+
+		List<TrailSocialEvent> newEvents = events.stream()
+			.filter(e -> e.id != null && !knownEventIds.contains(e.id))
+			.collect(Collectors.toList());
+
+		if (!newEvents.isEmpty())
+		{
+			for (TrailSocialEvent event : newEvents)
+			{
+				knownEventIds.add(event.id);
+			}
+			saveKnownEventIds();
+
+			hasUnseenEvents = true;
+			updateNavIcon(true);
+
+			if (!splashShownThisSession)
+			{
+				eventSplashOverlay.show(newEvents);
+				splashShownThisSession = true;
+			}
+
+			for (TrailSocialEvent event : newEvents)
+			{
+				String message = "New TrailSocial event: " + event.title
+					+ (event.date != null && !event.date.isEmpty() ? " (" + event.date + ")" : "");
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
+			}
+			notifier.notify(newEvents.size() == 1
+				? "New TrailSocial event: " + newEvents.get(0).title
+				: newEvents.size() + " new TrailSocial events posted");
+		}
+
+		refreshPanel();
+	}
+
+	private void acknowledgeEvents()
+	{
+		if (!hasUnseenEvents)
+		{
+			return;
+		}
+		hasUnseenEvents = false;
+		updateNavIcon(false);
+	}
+
+	private void updateNavIcon(boolean badged)
+	{
+		BufferedImage targetIcon = badged ? badgedNavIcon : normalNavIcon;
+		if (navButton == null || navButton.getIcon() == targetIcon)
+		{
+			return;
+		}
+
+		SwingUtilities.invokeLater(() -> {
+			if (navButton == null)
+			{
+				return;
+			}
+			clientToolbar.removeNavigation(navButton);
+			navButton = NavigationButton.builder()
+				.tooltip("TrailSocial")
+				.icon(targetIcon)
+				.priority(6)
+				.panel(panel)
+				.onClick(this::acknowledgeEvents)
+				.build();
+			clientToolbar.addNavigation(navButton);
+		});
+	}
+
+	private static BufferedImage createBadgedIcon(BufferedImage base)
+	{
+		BufferedImage badged = new BufferedImage(base.getWidth(), base.getHeight(), BufferedImage.TYPE_INT_ARGB);
+		Graphics2D g = badged.createGraphics();
+		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		g.drawImage(base, 0, 0, null);
+
+		int dotSize = Math.max(8, base.getWidth() / 3);
+		int x = base.getWidth() - dotSize - 1;
+		int y = 1;
+		g.setColor(Color.RED);
+		g.fillOval(x, y, dotSize, dotSize);
+		g.setColor(Color.WHITE);
+		g.drawOval(x, y, dotSize, dotSize);
+		g.dispose();
+
+		return badged;
+	}
+
+	private Set<String> loadKnownEventIds()
+	{
+		String value = configManager.getConfiguration(BankstandingXPConfig.GROUP, "knownEventIds");
+		if (value == null || value.isEmpty())
+		{
+			return Set.of();
+		}
+		return Arrays.stream(value.split(","))
+			.filter(s -> !s.isEmpty())
+			.collect(Collectors.toSet());
+	}
+
+	private void saveKnownEventIds()
+	{
+		configManager.setConfiguration(BankstandingXPConfig.GROUP, "knownEventIds", String.join(",", knownEventIds));
+	}
+
+	List<TrailSocialEvent> getRecentEvents()
+	{
+		return recentEvents;
 	}
 
 	@Subscribe
@@ -214,7 +503,28 @@ public class BankstandingXPPlugin extends Plugin
 		boolean moved = lastLocation == null || !lastLocation.equals(location);
 		lastLocation = location;
 
-		boolean nearBank = isNearBank(player);
+		LocalPoint localPoint = player.getLocalLocation();
+		int instanceRegionId = localPoint != null ? WorldPoint.fromLocalInstance(client, localPoint).getRegionID() : -1;
+
+		inClanHall = instanceRegionId == CLAN_HALL_REGION_ID;
+		if (inClanHall && SITTING_ANIMATION_IDS.contains(player.getAnimation()))
+		{
+			secondsSpentSitting += SECONDS_PER_TICK;
+		}
+
+		boolean inCox = client.getVarbitValue(VarbitID.RAIDS_CLIENT_INDUNGEON) == 1;
+		boolean inTob = BossAndRaidData.TOB_REGION_IDS.contains(instanceRegionId);
+		boolean inToa = BossAndRaidData.TOA_REGION_IDS.contains(instanceRegionId);
+		inRaid = inCox || inTob || inToa;
+		fightingBoss = isFightingBoss(player);
+
+		ItemContainer equipment = client.getItemContainer(InventoryID.WORN);
+		if (equipment != null && equipment.contains(TRAILBLAZER_CANE_ITEM_ID))
+		{
+			caneHeldSeconds += SECONDS_PER_TICK;
+		}
+
+		nearBank = isNearBank(player);
 
 		if (moved || !nearBank)
 		{
@@ -233,6 +543,8 @@ public class BankstandingXPPlugin extends Plugin
 			refreshPanel();
 			return;
 		}
+
+		bankstandingSeconds += SECONDS_PER_TICK;
 
 		if (xp >= BankstandingXP.MAX_XP)
 		{
@@ -270,6 +582,101 @@ public class BankstandingXPPlugin extends Plugin
 		refreshPanel();
 	}
 
+	@Subscribe
+	public void onMenuOptionClicked(MenuOptionClicked event)
+	{
+		if (inClanHall && "Burst".equals(event.getMenuOption()))
+		{
+			balloonsPopped++;
+		}
+	}
+
+	@Subscribe
+	public void onItemContainerChanged(ItemContainerChanged event)
+	{
+		if (event.getContainerId() != InventoryID.INV)
+		{
+			return;
+		}
+
+		Map<Integer, Integer> currentCounts = new HashMap<>();
+		for (Item item : event.getItemContainer().getItems())
+		{
+			if (item.getId() <= 0)
+			{
+				continue;
+			}
+			currentCounts.merge(item.getId(), item.getQuantity(), Integer::sum);
+		}
+
+		if (inClanHall)
+		{
+			for (Map.Entry<Integer, Integer> entry : currentCounts.entrySet())
+			{
+				int itemId = entry.getKey();
+				int newCount = entry.getValue();
+				int oldCount = lastInventoryCounts.getOrDefault(itemId, 0);
+				if (newCount <= oldCount)
+				{
+					continue;
+				}
+
+				int delta = newCount - oldCount;
+				if (itemId == GILDED_CHAINBODY_ITEM_ID)
+				{
+					gildedChainsPickedUp += delta;
+				}
+				clanHallWealthPickedUp += (long) itemManager.getItemPrice(itemId) * delta;
+			}
+		}
+
+		lastInventoryCounts.clear();
+		lastInventoryCounts.putAll(currentCounts);
+	}
+
+	@Subscribe
+	public void onActorDeath(ActorDeath event)
+	{
+		Actor actor = event.getActor();
+		Player player = client.getLocalPlayer();
+
+		if (actor == player)
+		{
+			if (inRaid || fightingBoss)
+			{
+				bossDeaths++;
+				saveXp();
+			}
+			return;
+		}
+
+		if (player != null && actor instanceof NPC)
+		{
+			NPC npc = (NPC) actor;
+			String name = npc.getName();
+			boolean killedByMe = npc.getInteracting() == player || player.getInteracting() == npc;
+			if (killedByMe && name != null && name.equalsIgnoreCase("Gnome"))
+			{
+				gnomesKilled++;
+				saveXp();
+				refreshPanel();
+			}
+		}
+	}
+
+	private boolean isFightingBoss(Player player)
+	{
+		Actor target = player.getInteracting();
+		if (!(target instanceof NPC))
+		{
+			return false;
+		}
+
+		NPCComposition comp = ((NPC) target).getComposition();
+		String name = comp != null ? comp.getName() : null;
+		return name != null && BossAndRaidData.BOSS_NAMES.contains(name.toLowerCase());
+	}
+
 	private void announceLevelUp(int level)
 	{
 		String message = "Congratulations, you've just advanced a Bankstanding level. You are now level " + level + ".";
@@ -296,7 +703,21 @@ public class BankstandingXPPlugin extends Plugin
 		}
 		long displayXp = (long) Math.floor(xp);
 		BankstandingStatus displayStatus = status;
-		SwingUtilities.invokeLater(() -> panel.update(displayXp, displayStatus));
+		long displayBankstandingSeconds = (long) Math.floor(bankstandingSeconds);
+		long displayClanHallWealth = clanHallWealthPickedUp;
+		long displayBalloonsPopped = balloonsPopped;
+		long displayGildedChains = gildedChainsPickedUp;
+		long displaySittingSeconds = (long) Math.floor(secondsSpentSitting);
+		long displayBossDeaths = bossDeaths;
+		long displayGnomesKilled = gnomesKilled;
+		long displayCaneHeldSeconds = (long) Math.floor(caneHeldSeconds);
+		List<TrailSocialEvent> displayEvents = recentEvents;
+		SwingUtilities.invokeLater(() -> {
+			panel.update(displayXp, displayStatus);
+			panel.updateStats(displayBankstandingSeconds, displayClanHallWealth, displayBalloonsPopped,
+				displayGildedChains, displaySittingSeconds, displayBossDeaths, displayGnomesKilled, displayCaneHeldSeconds);
+			panel.updateEvents(displayEvents);
+		});
 	}
 
 	long getXp()
@@ -309,15 +730,76 @@ public class BankstandingXPPlugin extends Plugin
 		return status;
 	}
 
-	private String xpConfigKey(long accountHash)
+	boolean isInClanHall()
 	{
-		return "xp_" + accountHash;
+		return inClanHall;
+	}
+
+	long getBalloonsPopped()
+	{
+		return balloonsPopped;
+	}
+
+	long getGildedChainsPickedUp()
+	{
+		return gildedChainsPickedUp;
+	}
+
+	long getSecondsSpentSitting()
+	{
+		return (long) Math.floor(secondsSpentSitting);
+	}
+
+	long getClanHallWealthPickedUp()
+	{
+		return clanHallWealthPickedUp;
+	}
+
+	long getBankstandingSeconds()
+	{
+		return (long) Math.floor(bankstandingSeconds);
+	}
+
+	boolean isNearBank()
+	{
+		return nearBank;
+	}
+
+	boolean isInRaid()
+	{
+		return inRaid;
+	}
+
+	boolean isFightingBoss()
+	{
+		return fightingBoss;
+	}
+
+	long getBossDeaths()
+	{
+		return bossDeaths;
+	}
+
+	long getGnomesKilled()
+	{
+		return gnomesKilled;
+	}
+
+	long getCaneHeldSeconds()
+	{
+		return (long) Math.floor(caneHeldSeconds);
+	}
+
+	private String accountKey(String prefix, long accountHash)
+	{
+		return prefix + "_" + accountHash;
 	}
 
 	private void loadXp()
 	{
 		currentAccountHash = client.getAccountHash();
-		String value = configManager.getConfiguration(BankstandingXPConfig.GROUP, xpConfigKey(currentAccountHash));
+
+		String value = configManager.getConfiguration(BankstandingXPConfig.GROUP, accountKey("xp", currentAccountHash));
 		double loaded = 0;
 		if (value != null)
 		{
@@ -332,7 +814,65 @@ public class BankstandingXPPlugin extends Plugin
 		}
 		xp = Math.max(0, Math.min(loaded, BankstandingXP.MAX_XP));
 		lastWholeXp = (long) Math.floor(xp);
+
+		balloonsPopped = parseLongConfig(accountKey("chBalloons", currentAccountHash));
+		gildedChainsPickedUp = parseLongConfig(accountKey("chChains", currentAccountHash));
+		secondsSpentSitting = parseDoubleConfig(accountKey("chSitting", currentAccountHash));
+		clanHallWealthPickedUp = parseLongConfig(accountKey("chWealth", currentAccountHash));
+		bankstandingSeconds = parseDoubleConfig(accountKey("bsTime", currentAccountHash));
+		bossDeaths = parseLongConfig(accountKey("bossDeaths", currentAccountHash));
+		gnomesKilled = parseLongConfig(accountKey("gnomesKilled", currentAccountHash));
+		caneHeldSeconds = parseDoubleConfig(accountKey("caneHeld", currentAccountHash));
+
+		lastInventoryCounts.clear();
+		ItemContainer inventory = client.getItemContainer(InventoryID.INV);
+		if (inventory != null)
+		{
+			for (Item item : inventory.getItems())
+			{
+				if (item.getId() <= 0)
+				{
+					continue;
+				}
+				lastInventoryCounts.merge(item.getId(), item.getQuantity(), Integer::sum);
+			}
+		}
+
 		refreshPanel();
+	}
+
+	private long parseLongConfig(String key)
+	{
+		String value = configManager.getConfiguration(BankstandingXPConfig.GROUP, key);
+		if (value == null)
+		{
+			return 0;
+		}
+		try
+		{
+			return Long.parseLong(value);
+		}
+		catch (NumberFormatException e)
+		{
+			return 0;
+		}
+	}
+
+	private double parseDoubleConfig(String key)
+	{
+		String value = configManager.getConfiguration(BankstandingXPConfig.GROUP, key);
+		if (value == null)
+		{
+			return 0;
+		}
+		try
+		{
+			return Double.parseDouble(value);
+		}
+		catch (NumberFormatException e)
+		{
+			return 0;
+		}
 	}
 
 	private void saveXp()
@@ -341,7 +881,15 @@ public class BankstandingXPPlugin extends Plugin
 		{
 			return;
 		}
-		configManager.setConfiguration(BankstandingXPConfig.GROUP, xpConfigKey(currentAccountHash), Double.toString(xp));
+		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("xp", currentAccountHash), Double.toString(xp));
+		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("chBalloons", currentAccountHash), Long.toString(balloonsPopped));
+		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("chChains", currentAccountHash), Long.toString(gildedChainsPickedUp));
+		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("chSitting", currentAccountHash), Double.toString(secondsSpentSitting));
+		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("chWealth", currentAccountHash), Long.toString(clanHallWealthPickedUp));
+		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("bsTime", currentAccountHash), Double.toString(bankstandingSeconds));
+		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("bossDeaths", currentAccountHash), Long.toString(bossDeaths));
+		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("gnomesKilled", currentAccountHash), Long.toString(gnomesKilled));
+		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("caneHeld", currentAccountHash), Double.toString(caneHeldSeconds));
 	}
 
 	private boolean isNearBank(Player player)
