@@ -108,7 +108,14 @@ public class BankstandingXPPlugin extends Plugin
 		AnimationID.HUMAN_SITTINGDOWN_SCRATCH,
 		AnimationID.HUMAN_SITTINGDOWN_THINK,
 		AnimationID.HUMAN_SITTINGDOWN_MOVE,
-		AnimationID.SITTING_EATING
+		AnimationID.SITTING_EATING,
+		AnimationID.HUMAN_SITTING_CHAIR,
+		// Clan Hall's own furniture (dining chairs, barstools) uses these
+		// instead of the generic POH sitting animations above.
+		AnimationID.CLAN_MEDIEVAL_DININGCHAIR_SITTING,
+		AnimationID.CLAN_MEDIEVAL_DININGCHAIR_EATING,
+		AnimationID.CLAN_MEDIEVAL_BARSTOOL_SITTING,
+		AnimationID.CLAN_MEDIEVAL_BARSTOOL_EATING
 	);
 
 	@Inject
