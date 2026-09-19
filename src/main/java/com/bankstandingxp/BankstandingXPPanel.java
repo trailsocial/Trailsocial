@@ -43,6 +43,8 @@ class BankstandingXPPanel extends PluginPanel
 	private final JLabel bossDeathsValue = new JLabel();
 	private final JLabel gnomesKilledValue = new JLabel();
 	private final JLabel caneHeldValue = new JLabel();
+	private final JLabel geTimeInValue = new JLabel();
+	private final JLabel geTimeOutValue = new JLabel();
 	private final JPanel eventsContainer = new JPanel();
 
 	BankstandingXPPanel(BankstandingXPConfig config, BufferedImage logo, int bankRadius, int idleThresholdSeconds,
@@ -145,6 +147,8 @@ class BankstandingXPPanel extends PluginPanel
 		statsPanel.add(statRow(bossDeathsValue));
 		statsPanel.add(statRow(gnomesKilledValue));
 		statsPanel.add(statRow(caneHeldValue));
+		statsPanel.add(statRow(geTimeInValue));
+		statsPanel.add(statRow(geTimeOutValue));
 
 		JPanel eventsPanel = new JPanel();
 		eventsPanel.setLayout(new BoxLayout(eventsPanel, BoxLayout.Y_AXIS));
@@ -193,7 +197,7 @@ class BankstandingXPPanel extends PluginPanel
 		add(scrollPane, BorderLayout.CENTER);
 
 		update(0L, BankstandingStatus.NOT_LOGGED_IN);
-		updateStats(0, 0, 0, 0, 0, 0, 0, 0);
+		updateStats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 		updateEvents(List.of());
 	}
 
@@ -225,7 +229,8 @@ class BankstandingXPPanel extends PluginPanel
 	}
 
 	void updateStats(long bankstandingSeconds, long clanHallWealth, long balloonsPopped,
-		long gildedChainsPickedUp, long sittingSeconds, long bossDeaths, long gnomesKilled, long caneHeldSeconds)
+		long gildedChainsPickedUp, long sittingSeconds, long bossDeaths, long gnomesKilled, long caneHeldSeconds,
+		long secondsInGe, long secondsOutsideGe)
 	{
 		bankstandingTimeValue.setText("Bankstanding time: " + formatDuration(bankstandingSeconds));
 		clanHallWealthValue.setText("Clan Hall wealth: " + String.format("%,d gp", clanHallWealth));
@@ -235,6 +240,8 @@ class BankstandingXPPanel extends PluginPanel
 		bossDeathsValue.setText("Deaths bossing: " + String.format("%,d", bossDeaths));
 		gnomesKilledValue.setText("Gnomes killed: " + String.format("%,d", gnomesKilled));
 		caneHeldValue.setText("Cane held for: " + formatDuration(caneHeldSeconds));
+		geTimeInValue.setText("Time in GE: " + formatDuration(secondsInGe));
+		geTimeOutValue.setText("Time outside GE: " + formatDuration(secondsOutsideGe));
 	}
 
 	void updateEvents(List<TrailSocialEvent> events)

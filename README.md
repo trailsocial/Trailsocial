@@ -8,6 +8,7 @@ A RuneLite plugin for the most optimal gaming gamers
 - Clan Hall stats - balloons burst, gilded chains picked up, wealth looted, time spent sitting
 - Bossing/raid death counter (CoX, ToB, ToA, and real boss NPCs)
 - Gnome kill counter, Trailblazer cane held-time tracker
+- Time spent inside vs. outside the Grand Exchange
 - Live trailsocial.net event notifications - sidebar badge, in-game popup, login splash
 - Much More, and More To Come
 

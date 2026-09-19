@@ -86,6 +86,8 @@ public class BankstandingXPPlugin extends Plugin
 
 	// Derived from the OSRS wiki's Clan Hall coordinates (1760, 5473): regionId = (x >> 6 << 8) | (y >> 6)
 	private static final int CLAN_HALL_REGION_ID = 6997;
+	// Derived from the OSRS wiki's Grand Exchange coordinates (3164, 3487): regionId = (x >> 6 << 8) | (y >> 6)
+	private static final int GRAND_EXCHANGE_REGION_ID = 12598;
 	// Gilded chainbody, per the official Grand Exchange item id (obj=20149)
 	private static final int GILDED_CHAINBODY_ITEM_ID = 20149;
 	// Trailblazer cane (tier 3 Leagues relic hunter reward), per the official Grand Exchange item id (obj=25013)
@@ -194,6 +196,8 @@ public class BankstandingXPPlugin extends Plugin
 	private double secondsSpentSitting = 0;
 	private long clanHallWealthPickedUp = 0;
 	private double bankstandingSeconds = 0;
+	private double secondsInGe = 0;
+	private double secondsOutsideGe = 0;
 	private BankstandingStatus status = BankstandingStatus.NOT_LOGGED_IN;
 
 	private boolean inRaid = false;
@@ -227,6 +231,8 @@ public class BankstandingXPPlugin extends Plugin
 		secondsSpentSitting = 0;
 		clanHallWealthPickedUp = 0;
 		bankstandingSeconds = 0;
+		secondsInGe = 0;
+		secondsOutsideGe = 0;
 		lastInventoryCounts.clear();
 		inRaid = false;
 		fightingBoss = false;
@@ -519,6 +525,15 @@ public class BankstandingXPPlugin extends Plugin
 			secondsSpentSitting += SECONDS_PER_TICK;
 		}
 
+		if (instanceRegionId == GRAND_EXCHANGE_REGION_ID)
+		{
+			secondsInGe += SECONDS_PER_TICK;
+		}
+		else
+		{
+			secondsOutsideGe += SECONDS_PER_TICK;
+		}
+
 		boolean inCox = client.getVarbitValue(VarbitID.RAIDS_CLIENT_INDUNGEON) == 1;
 		boolean inTob = BossAndRaidData.TOB_REGION_IDS.contains(instanceRegionId);
 		boolean inToa = BossAndRaidData.TOA_REGION_IDS.contains(instanceRegionId);
@@ -718,11 +733,14 @@ public class BankstandingXPPlugin extends Plugin
 		long displayBossDeaths = bossDeaths;
 		long displayGnomesKilled = gnomesKilled;
 		long displayCaneHeldSeconds = (long) Math.floor(caneHeldSeconds);
+		long displaySecondsInGe = (long) Math.floor(secondsInGe);
+		long displaySecondsOutsideGe = (long) Math.floor(secondsOutsideGe);
 		List<TrailSocialEvent> displayEvents = recentEvents;
 		SwingUtilities.invokeLater(() -> {
 			panel.update(displayXp, displayStatus);
 			panel.updateStats(displayBankstandingSeconds, displayClanHallWealth, displayBalloonsPopped,
-				displayGildedChains, displaySittingSeconds, displayBossDeaths, displayGnomesKilled, displayCaneHeldSeconds);
+				displayGildedChains, displaySittingSeconds, displayBossDeaths, displayGnomesKilled, displayCaneHeldSeconds,
+				displaySecondsInGe, displaySecondsOutsideGe);
 			panel.updateEvents(displayEvents);
 		});
 	}
@@ -797,6 +815,16 @@ public class BankstandingXPPlugin extends Plugin
 		return (long) Math.floor(caneHeldSeconds);
 	}
 
+	long getSecondsInGe()
+	{
+		return (long) Math.floor(secondsInGe);
+	}
+
+	long getSecondsOutsideGe()
+	{
+		return (long) Math.floor(secondsOutsideGe);
+	}
+
 	private String accountKey(String prefix, long accountHash)
 	{
 		return prefix + "_" + accountHash;
@@ -830,6 +858,8 @@ public class BankstandingXPPlugin extends Plugin
 		bossDeaths = parseLongConfig(accountKey("bossDeaths", currentAccountHash));
 		gnomesKilled = parseLongConfig(accountKey("gnomesKilled", currentAccountHash));
 		caneHeldSeconds = parseDoubleConfig(accountKey("caneHeld", currentAccountHash));
+		secondsInGe = parseDoubleConfig(accountKey("geTimeIn", currentAccountHash));
+		secondsOutsideGe = parseDoubleConfig(accountKey("geTimeOut", currentAccountHash));
 
 		lastInventoryCounts.clear();
 		ItemContainer inventory = client.getItemContainer(InventoryID.INV);
@@ -897,6 +927,8 @@ public class BankstandingXPPlugin extends Plugin
 		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("bossDeaths", currentAccountHash), Long.toString(bossDeaths));
 		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("gnomesKilled", currentAccountHash), Long.toString(gnomesKilled));
 		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("caneHeld", currentAccountHash), Double.toString(caneHeldSeconds));
+		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("geTimeIn", currentAccountHash), Double.toString(secondsInGe));
+		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("geTimeOut", currentAccountHash), Double.toString(secondsOutsideGe));
 	}
 
 	private boolean isNearBank(Player player)
