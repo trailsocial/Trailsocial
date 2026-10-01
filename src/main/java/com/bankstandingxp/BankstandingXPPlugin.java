@@ -38,6 +38,7 @@ import net.runelite.api.ObjectComposition;
 import net.runelite.api.Player;
 import net.runelite.api.Scene;
 import net.runelite.api.gameval.AnimationID;
+import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.SpotanimID;
 import net.runelite.api.gameval.VarbitID;
@@ -51,6 +52,8 @@ import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuOptionClicked;
+import net.runelite.api.events.WidgetClosed;
+import net.runelite.api.events.WidgetLoaded;
 import net.runelite.client.Notifier;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -191,6 +194,7 @@ public class BankstandingXPPlugin extends Plugin
 
 	private boolean nearBank = false;
 	private boolean inClanHall = false;
+	private boolean bankInterfaceOpen = false;
 	private long balloonsPopped = 0;
 	private long gildedChainsPickedUp = 0;
 	private double secondsSpentSitting = 0;
@@ -226,6 +230,7 @@ public class BankstandingXPPlugin extends Plugin
 		status = BankstandingStatus.NOT_LOGGED_IN;
 		nearBank = false;
 		inClanHall = false;
+		bankInterfaceOpen = false;
 		balloonsPopped = 0;
 		gildedChainsPickedUp = 0;
 		secondsSpentSitting = 0;
@@ -614,6 +619,24 @@ public class BankstandingXPPlugin extends Plugin
 	}
 
 	@Subscribe
+	public void onWidgetLoaded(WidgetLoaded event)
+	{
+		if (event.getGroupId() == InterfaceID.BANKMAIN)
+		{
+			bankInterfaceOpen = true;
+		}
+	}
+
+	@Subscribe
+	public void onWidgetClosed(WidgetClosed event)
+	{
+		if (event.getGroupId() == InterfaceID.BANKMAIN)
+		{
+			bankInterfaceOpen = false;
+		}
+	}
+
+	@Subscribe
 	public void onItemContainerChanged(ItemContainerChanged event)
 	{
 		if (event.getContainerId() != InventoryID.INV)
@@ -631,7 +654,10 @@ public class BankstandingXPPlugin extends Plugin
 			currentCounts.merge(item.getId(), item.getQuantity(), Integer::sum);
 		}
 
-		if (inClanHall)
+		// Withdrawing from a bank (Clan Halls have one) increases inventory
+		// counts the same way picking up loot does, so don't mistake that
+		// for Clan Hall wealth.
+		if (inClanHall && !bankInterfaceOpen)
 		{
 			for (Map.Entry<Integer, Integer> entry : currentCounts.entrySet())
 			{
