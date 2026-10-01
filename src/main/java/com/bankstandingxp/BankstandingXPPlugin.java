@@ -530,7 +530,8 @@ public class BankstandingXPPlugin extends Plugin
 			secondsSpentSitting += SECONDS_PER_TICK;
 		}
 
-		if (instanceRegionId == GRAND_EXCHANGE_REGION_ID)
+		boolean inGrandExchange = instanceRegionId == GRAND_EXCHANGE_REGION_ID;
+		if (inGrandExchange)
 		{
 			secondsInGe += SECONDS_PER_TICK;
 		}
@@ -553,7 +554,10 @@ public class BankstandingXPPlugin extends Plugin
 
 		nearBank = isNearBank(player);
 
-		if (moved || !nearBank)
+		// The Grand Exchange is packed with clerks/booths, so players are
+		// expected to wander between them - don't require standing still
+		// there the way every other bank does.
+		if ((moved && !inGrandExchange) || !nearBank)
 		{
 			idleTicks = 0;
 			setStatus(nearBank ? BankstandingStatus.MOVING : BankstandingStatus.NOT_NEAR_BANK);

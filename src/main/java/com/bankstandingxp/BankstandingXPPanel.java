@@ -173,7 +173,8 @@ class BankstandingXPPanel extends PluginPanel
 		hintPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 		hintPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 		JLabel hint = new JLabel("<html>Stand within " + bankRadius + " tiles of a bank and don't move for "
-			+ idleThresholdSeconds + "s to start earning Bankstanding XP.</html>");
+			+ idleThresholdSeconds + "s to start earning Bankstanding XP. In the Grand Exchange "
+			+ "you can wander between booths and still earn it.</html>");
 		hint.setFont(FontManager.getRunescapeSmallFont());
 		hint.setForeground(Color.GRAY);
 		hintPanel.add(hint);
