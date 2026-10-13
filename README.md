@@ -4,7 +4,8 @@ A RuneLite plugin for the most optimal gaming gamers
 
 ## What it has
 
-- Bankstanding XP - a joke skill for idling near a bank
+- Bankstanding XP - a joke skill for idling near a bank. Every xp drop you get in any real skill costs you
+  Bankstanding XP, so actually playing the game holds you back
 - Clan Hall stats - balloons burst, gilded chains picked up, wealth looted, time spent sitting
 - Bossing/raid death counter (CoX, ToB, ToA, and real boss NPCs)
 - Gnome kill counter, Trailblazer cane held-time tracker

@@ -52,6 +52,7 @@ import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuOptionClicked;
+import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.client.Notifier;
@@ -185,6 +186,10 @@ public class BankstandingXPPlugin extends Plugin
 	private BufferedImage badgedNavIcon;
 	private ScheduledFuture<?> eventsPollTask;
 
+	private final XpDropTracker xpDrops = new XpDropTracker();
+	// Bankstanding xp lost since the last game tick, shown as one "-N" popup instead of one per skill.
+	private long pendingPenalty = 0;
+
 	private LeaderboardSync leaderboard;
 	private ScheduledFuture<?> leaderboardTask;
 	// In-game name of the logged-in account, captured on the client thread; null while logged out.
@@ -247,6 +252,8 @@ public class BankstandingXPPlugin extends Plugin
 		bankstandingSeconds = 0;
 		secondsInGe = 0;
 		secondsOutsideGe = 0;
+		xpDrops.reset();
+		pendingPenalty = 0;
 		lastInventoryCounts.clear();
 		inRaid = false;
 		fightingBoss = false;
@@ -614,6 +621,8 @@ public class BankstandingXPPlugin extends Plugin
 				sendLeaderboardSync();
 			}
 			rsn = null;
+			xpDrops.reset();
+			pendingPenalty = 0;
 			currentAccountHash = -1;
 			idleTicks = 0;
 			lastLocation = null;
@@ -639,6 +648,17 @@ public class BankstandingXPPlugin extends Plugin
 		if (player.getName() != null)
 		{
 			rsn = Text.sanitize(player.getName());
+		}
+
+		// Baseline once per login, after the client has finished loading every skill's xp.
+		if (!xpDrops.isReady())
+		{
+			xpDrops.baseline(client::getSkillExperience);
+		}
+		if (pendingPenalty > 0)
+		{
+			xpDropOverlay.addDrop(-pendingPenalty);
+			pendingPenalty = 0;
 		}
 
 		WorldPoint location = player.getWorldLocation();
@@ -744,6 +764,22 @@ public class BankstandingXPPlugin extends Plugin
 		{
 			balloonsPopped++;
 		}
+	}
+
+	// Doing anything that earns real xp costs Bankstanding xp per xp drop (see XpDropTracker.penaltyFor).
+	@Subscribe
+	public void onStatChanged(StatChanged event)
+	{
+		if (currentAccountHash == -1 || !xpDrops.isDrop(event.getSkill(), event.getXp()) || xp <= 0)
+		{
+			return;
+		}
+
+		double lost = Math.min(XpDropTracker.penaltyFor(event.getSkill()), xp);
+		xp -= lost;
+		lastWholeXp = (long) Math.floor(xp);
+		// The popup only ever shows the standard cost per drop; agility's bigger cost is deliberately not shown in the UI.
+		pendingPenalty += Math.min(Math.round(lost), XpDropTracker.PENALTY_PER_DROP);
 	}
 
 	@Subscribe

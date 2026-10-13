@@ -42,9 +42,10 @@ public class BankstandingXpDropOverlay extends Overlay
 		setLayer(OverlayLayer.ABOVE_WIDGETS);
 	}
 
+	/** Positive amounts are xp gained; negative ones are xp lost (shown red). */
 	void addDrop(long amount)
 	{
-		if (amount <= 0)
+		if (amount == 0)
 		{
 			return;
 		}
@@ -98,7 +99,9 @@ public class BankstandingXpDropOverlay extends Overlay
 			graphics.setColor(new Color(0, 0, 0, (int) (200 * alpha)));
 			graphics.drawString(text, textX + 1, textY + 1);
 
-			graphics.setColor(new Color(255, 255, 0, (int) (255 * alpha)));
+			graphics.setColor(drop.amount < 0
+				? new Color(255, 70, 70, (int) (255 * alpha))
+				: new Color(255, 255, 0, (int) (255 * alpha)));
 			graphics.drawString(text, textX, textY);
 
 			Composite original = graphics.getComposite();
