@@ -39,6 +39,15 @@ public class LeaderboardSyncIntegrationTest
 		return new LeaderboardSync.Snapshot(name, xp, 9000, 5_000_000, 12, 1, 1800, 2, 40, 7200, 600, 3000);
 	}
 
+	/** Needs only TS_LEADERBOARD_URL: proves the real client can reach the server and is turned away cleanly without a valid code. */
+	@Test
+	public void serverIsReachableAndRejectsAnUnknownCode() throws Exception
+	{
+		String url = System.getenv("TS_LEADERBOARD_URL");
+		assumeNotNull(url);
+		assertEquals(LeaderboardSync.Kind.BAD_CODE, send(url, "tsb_not-a-real-code-at-all-0000", snapshot("Zezima", 1)).kind);
+	}
+
 	@Test
 	public void realClientAgainstRealServer() throws Exception
 	{
