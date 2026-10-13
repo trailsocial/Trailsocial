@@ -66,6 +66,7 @@ import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ImageUtil;
+import net.runelite.client.util.Text;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
@@ -99,6 +100,8 @@ public class BankstandingXPPlugin extends Plugin
 	private static final String EVENTS_URL = "https://trailsocial.net/.netlify/functions/get-event";
 	private static final int EVENTS_POLL_INITIAL_DELAY_SECONDS = 15;
 	private static final int EVENTS_POLL_PERIOD_SECONDS = 300;
+	private static final int LEADERBOARD_INITIAL_DELAY_SECONDS = 45;
+	private static final int LEADERBOARD_PERIOD_SECONDS = 300;
 	private static final Type EVENT_LIST_TYPE = new TypeToken<List<TrailSocialEvent>>()
 	{
 	}.getType();
@@ -181,6 +184,12 @@ public class BankstandingXPPlugin extends Plugin
 	private BufferedImage normalNavIcon;
 	private BufferedImage badgedNavIcon;
 	private ScheduledFuture<?> eventsPollTask;
+
+	private LeaderboardSync leaderboard;
+	private ScheduledFuture<?> leaderboardTask;
+	// In-game name of the logged-in account, captured on the client thread; null while logged out.
+	private volatile String rsn;
+	private volatile long leaderboardPausedUntilMs = 0;
 	private List<TrailSocialEvent> recentEvents = List.of();
 	private boolean hasUnseenEvents = false;
 	private boolean splashShownThisSession = false;
@@ -273,6 +282,12 @@ public class BankstandingXPPlugin extends Plugin
 
 		eventsPollTask = executor.scheduleWithFixedDelay(this::pollEvents,
 			EVENTS_POLL_INITIAL_DELAY_SECONDS, EVENTS_POLL_PERIOD_SECONDS, TimeUnit.SECONDS);
+
+		leaderboard = new LeaderboardSync(okHttpClient, gson, LeaderboardSync.ENDPOINT);
+		leaderboardPausedUntilMs = 0;
+		showInitialLeaderboardStatus();
+		leaderboardTask = executor.scheduleWithFixedDelay(this::syncLeaderboard,
+			LEADERBOARD_INITIAL_DELAY_SECONDS, LEADERBOARD_PERIOD_SECONDS, TimeUnit.SECONDS);
 	}
 
 	@Override
@@ -284,6 +299,13 @@ public class BankstandingXPPlugin extends Plugin
 			eventsPollTask.cancel(false);
 			eventsPollTask = null;
 		}
+		if (leaderboardTask != null)
+		{
+			leaderboardTask.cancel(false);
+			leaderboardTask = null;
+		}
+		leaderboard = null;
+		rsn = null;
 		overlayManager.remove(overlay);
 		overlayManager.remove(xpDropOverlay);
 		overlayManager.remove(clanHallOverlay);
@@ -347,6 +369,88 @@ public class BankstandingXPPlugin extends Plugin
 				}
 			}
 		});
+	}
+
+	private String leaderboardCode()
+	{
+		String code = config.leaderboardCode();
+		return code == null ? "" : code.trim();
+	}
+
+	private void showLeaderboardStatus(String text, Color color)
+	{
+		BankstandingXPPanel current = panel;
+		if (current != null)
+		{
+			SwingUtilities.invokeLater(() -> current.updateSyncStatus(text, color));
+		}
+	}
+
+	private void showInitialLeaderboardStatus()
+	{
+		if (leaderboardCode().isEmpty())
+		{
+			showLeaderboardStatus("Leaderboard: off. Paste a link code from your trailsocial.net profile into the plugin settings to join.", Color.GRAY);
+		}
+		else
+		{
+			showLeaderboardStatus("Leaderboard: waiting to sync...", Color.YELLOW);
+		}
+	}
+
+	// Timer entry point (executor thread): hop to the client thread, where the stats live.
+	private void syncLeaderboard()
+	{
+		if (leaderboardCode().isEmpty() || System.currentTimeMillis() < leaderboardPausedUntilMs)
+		{
+			return;
+		}
+		clientThread.invoke(this::sendLeaderboardSync);
+	}
+
+	// Client thread only.
+	private void sendLeaderboardSync()
+	{
+		String code = leaderboardCode();
+		LeaderboardSync sync = leaderboard;
+		String name = rsn;
+		if (code.isEmpty() || sync == null || name == null || currentAccountHash == -1)
+		{
+			return;
+		}
+
+		LeaderboardSync.Snapshot snapshot = new LeaderboardSync.Snapshot(
+			name,
+			(long) Math.floor(xp),
+			(long) Math.floor(bankstandingSeconds),
+			clanHallWealthPickedUp,
+			balloonsPopped,
+			gildedChainsPickedUp,
+			(long) Math.floor(secondsSpentSitting),
+			bossDeaths,
+			gnomesKilled,
+			(long) Math.floor(caneHeldSeconds),
+			(long) Math.floor(secondsInGe),
+			(long) Math.floor(secondsOutsideGe));
+		if (!snapshot.hasProgress())
+		{
+			return;
+		}
+
+		sync.send(code, snapshot, result -> onLeaderboardResult(result, name));
+	}
+
+	private void onLeaderboardResult(LeaderboardSync.Result result, String name)
+	{
+		if (result.kind == LeaderboardSync.Kind.THROTTLED)
+		{
+			return;
+		}
+
+		long pause = result.pauseMillis();
+		leaderboardPausedUntilMs = pause > 0 ? System.currentTimeMillis() + pause : 0;
+		showLeaderboardStatus(result.describe(name),
+			result.kind == LeaderboardSync.Kind.SYNCED ? Color.GREEN : result.needsAttention() ? Color.ORANGE : Color.YELLOW);
 	}
 
 	private void onEventsFetched(List<TrailSocialEvent> events)
@@ -476,6 +580,16 @@ public class BankstandingXPPlugin extends Plugin
 		{
 			SwingUtilities.invokeLater(() -> panel.setOverlaySelected(config.showOverlay()));
 		}
+
+		if ("leaderboardCode".equals(event.getKey()))
+		{
+			leaderboardPausedUntilMs = 0;
+			showInitialLeaderboardStatus();
+			if (!leaderboardCode().isEmpty())
+			{
+				executor.schedule(this::syncLeaderboard, 2, TimeUnit.SECONDS);
+			}
+		}
 	}
 
 	@Subscribe
@@ -495,6 +609,11 @@ public class BankstandingXPPlugin extends Plugin
 		else if (state == GameState.LOGIN_SCREEN || state == GameState.HOPPING || state == GameState.CONNECTION_LOST)
 		{
 			saveXp();
+			if (state == GameState.LOGIN_SCREEN)
+			{
+				sendLeaderboardSync();
+			}
+			rsn = null;
 			currentAccountHash = -1;
 			idleTicks = 0;
 			lastLocation = null;
@@ -515,6 +634,11 @@ public class BankstandingXPPlugin extends Plugin
 		if (player == null)
 		{
 			return;
+		}
+
+		if (player.getName() != null)
+		{
+			rsn = Text.sanitize(player.getName());
 		}
 
 		WorldPoint location = player.getWorldLocation();

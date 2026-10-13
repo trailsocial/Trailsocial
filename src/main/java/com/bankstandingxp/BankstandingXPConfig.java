@@ -3,6 +3,7 @@ package com.bankstandingxp;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
+import net.runelite.client.config.ConfigSection;
 import net.runelite.client.config.Range;
 
 @ConfigGroup(BankstandingXPConfig.GROUP)
@@ -53,5 +54,26 @@ public interface BankstandingXPConfig extends Config
 	default int dropSize()
 	{
 		return 100;
+	}
+
+	@ConfigSection(
+		name = "Leaderboard",
+		description = "Sync your Bankstanding XP and stats to the TrailSocial leaderboard",
+		position = 10
+	)
+	String leaderboardSection = "leaderboard";
+
+	@ConfigItem(
+		keyName = "leaderboardCode",
+		name = "Leaderboard link code",
+		description = "Paste the code from your trailsocial.net profile (Leaderboard Sync). While it is set, your in-game name, "
+			+ "Bankstanding XP and the stats shown in the sidebar are sent to trailsocial.net every few minutes. Clear it to stop.",
+		section = leaderboardSection,
+		secret = true,
+		position = 11
+	)
+	default String leaderboardCode()
+	{
+		return "";
 	}
 }

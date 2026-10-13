@@ -45,6 +45,7 @@ class BankstandingXPPanel extends PluginPanel
 	private final JLabel caneHeldValue = new JLabel();
 	private final JLabel geTimeInValue = new JLabel();
 	private final JLabel geTimeOutValue = new JLabel();
+	private final JLabel leaderboardStatusValue = new JLabel();
 	private final JPanel eventsContainer = new JPanel();
 
 	BankstandingXPPanel(BankstandingXPConfig config, BufferedImage logo, int bankRadius, int idleThresholdSeconds,
@@ -149,6 +150,8 @@ class BankstandingXPPanel extends PluginPanel
 		statsPanel.add(statRow(caneHeldValue));
 		statsPanel.add(statRow(geTimeInValue));
 		statsPanel.add(statRow(geTimeOutValue));
+		statsPanel.add(Box.createVerticalStrut(6));
+		statsPanel.add(statRow(leaderboardStatusValue));
 
 		JPanel eventsPanel = new JPanel();
 		eventsPanel.setLayout(new BoxLayout(eventsPanel, BoxLayout.Y_AXIS));
@@ -172,9 +175,9 @@ class BankstandingXPPanel extends PluginPanel
 		hintPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		hintPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 		hintPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-		JLabel hint = new JLabel("<html>Stand within " + bankRadius + " tiles of a bank and don't move for "
+		JLabel hint = new JLabel(wrap("Stand within " + bankRadius + " tiles of a bank and don't move for "
 			+ idleThresholdSeconds + "s to start earning Bankstanding XP. In the Grand Exchange "
-			+ "you can wander between booths and still earn it.</html>");
+			+ "you can wander between booths and still earn it."));
 		hint.setFont(FontManager.getRunescapeSmallFont());
 		hint.setForeground(Color.GRAY);
 		hintPanel.add(hint);
@@ -199,6 +202,7 @@ class BankstandingXPPanel extends PluginPanel
 
 		update(0L, BankstandingStatus.NOT_LOGGED_IN);
 		updateStats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+		updateSyncStatus("Leaderboard: off", Color.GRAY);
 		updateEvents(List.of());
 	}
 
@@ -243,6 +247,12 @@ class BankstandingXPPanel extends PluginPanel
 		caneHeldValue.setText("Cane held for: " + formatDuration(caneHeldSeconds));
 		geTimeInValue.setText("Time in GE: " + formatDuration(secondsInGe));
 		geTimeOutValue.setText("Time outside GE: " + formatDuration(secondsOutsideGe));
+	}
+
+	void updateSyncStatus(String text, Color color)
+	{
+		leaderboardStatusValue.setText(wrap(text));
+		leaderboardStatusValue.setForeground(color);
 	}
 
 	void updateEvents(List<TrailSocialEvent> events)
