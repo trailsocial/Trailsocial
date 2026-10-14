@@ -28,7 +28,7 @@ final class XpDropTracker
 		return skill == Skill.AGILITY ? AGILITY_PENALTY_PER_DROP : PENALTY_PER_DROP;
 	}
 
-	/** Fighting never costs Bankstanding xp: the combat skills, plus slayer, whose xp drops with every task kill. */
+	/** Fighting never costs Bankstanding xp: only the combat skills count (slayer is a normal, paid skill). */
 	static boolean isCombat(Skill skill)
 	{
 		switch (skill)
@@ -40,7 +40,6 @@ final class XpDropTracker
 			case MAGIC:
 			case HITPOINTS:
 			case PRAYER:
-			case SLAYER:
 				return true;
 			default:
 				return false;

@@ -65,7 +65,8 @@ public class XpDropTrackerTest
 	public void combatIsFreeAgilityCostsFiveAndEverythingElseCostsOne()
 	{
 		assertEquals(5, XpDropTracker.penaltyFor(Skill.AGILITY));
-		Skill[] combat = {Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE, Skill.RANGED, Skill.MAGIC, Skill.HITPOINTS, Skill.PRAYER, Skill.SLAYER};
+		assertEquals("slayer is not free", 1, XpDropTracker.penaltyFor(Skill.SLAYER));
+		Skill[] combat = {Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE, Skill.RANGED, Skill.MAGIC, Skill.HITPOINTS, Skill.PRAYER};
 		for (Skill skill : combat)
 		{
 			assertEquals(skill + " is combat and should be free", 0, XpDropTracker.penaltyFor(skill));
