@@ -48,6 +48,36 @@ public class LeaderboardSyncIntegrationTest
 		assertEquals(LeaderboardSync.Kind.BAD_CODE, send(url, "tsb_not-a-real-code-at-all-0000", snapshot("Zezima", 1)).kind);
 	}
 
+	/** A fresh install reports almost nothing; the server must keep the saved row and hand it back instead. */
+	@Test
+	public void aFreshInstallGetsItsSavedRowBackInsteadOfOverwritingIt() throws Exception
+	{
+		String url = System.getenv("TS_LEADERBOARD_URL");
+		String code = System.getenv("TS_LEADERBOARD_CODE");
+		String name = System.getenv("TS_LEADERBOARD_NAME");
+		assumeNotNull(url, code, name);
+
+		LeaderboardSync.Snapshot saved = snapshot(name, 12_400);
+		send(url, code, saved); // may be throttled if sent a moment ago; the stored row is the same either way
+
+		LeaderboardSync.Snapshot fresh = new LeaderboardSync.Snapshot(name, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 5);
+		LeaderboardSync.Result result = send(url, code, fresh);
+		assertEquals(LeaderboardSync.Kind.SYNCED, result.kind);
+		assertTrue("the server should hand the saved row back", result.restore != null);
+		assertEquals(saved.xp, result.restore.xp);
+		assertEquals(saved.clanHallWealth, result.restore.clanHallWealth);
+		assertEquals(saved.geSecondsIn, result.restore.geSecondsIn);
+		assertEquals(saved.geSecondsOut, result.restore.geSecondsOut);
+
+		// the merge the plugin performs puts a fresh install back to exactly the saved row
+		LeaderboardSync.Snapshot merged = fresh.mergedWith(result.restore);
+		assertTrue(merged.covers(saved) && saved.covers(merged));
+
+		// and a client that is not behind is not given anything to restore
+		LeaderboardSync.Result normal = send(url, code, snapshot(name, 12_400));
+		assertTrue(normal.restore == null);
+	}
+
 	@Test
 	public void realClientAgainstRealServer() throws Exception
 	{
@@ -56,11 +86,15 @@ public class LeaderboardSyncIntegrationTest
 		String name = System.getenv("TS_LEADERBOARD_NAME");
 		assumeNotNull(url, code, name);
 
+		// Another test may have synced this same row moments ago, in which case the server throttles this one.
 		LeaderboardSync.Result first = send(url, code, snapshot(name, 12_400));
-		assertEquals(LeaderboardSync.Kind.SYNCED, first.kind);
-		assertTrue("rank " + first.rank, first.rank >= 1);
-		assertTrue("total " + first.total, first.total >= first.rank);
-		System.out.println("first sync: " + first.describe(name));
+		assertTrue("unexpected " + first.kind, first.kind == LeaderboardSync.Kind.SYNCED || first.kind == LeaderboardSync.Kind.THROTTLED);
+		if (first.kind == LeaderboardSync.Kind.SYNCED)
+		{
+			assertTrue("rank " + first.rank, first.rank >= 1);
+			assertTrue("total " + first.total, first.total >= first.rank);
+			System.out.println("first sync: " + first.describe(name));
+		}
 
 		LeaderboardSync.Result again = send(url, code, snapshot(name, 12_450));
 		assertEquals("a second report right away is throttled", LeaderboardSync.Kind.THROTTLED, again.kind);

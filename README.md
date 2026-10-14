@@ -32,6 +32,11 @@ plugin's sidebar (bankstanding time, Clan Hall wealth/balloons/chains/sitting ti
 cane held time, time in and out of the Grand Exchange). It sends no account hash, no other game data, and no
 inventory, bank or chat contents. Clear the code to stop; you can also revoke it from your profile.
 
+Moving to a new computer or reinstalling RuneLite? Paste the same link code there. The site recognises that the
+new install is behind your saved row, keeps the saved row safe instead of overwriting it, and the plugin
+restores your XP and stats from it (it keeps the larger of each value, so nothing local is lost). To
+deliberately start over, remove the RuneScape account from your profile and add it again.
+
 ## Project layout
 
 Standard RuneLite plugin template

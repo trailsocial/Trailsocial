@@ -125,6 +125,86 @@ public class LeaderboardSyncTest
 		assertEquals("Leaderboard: synced", new LeaderboardSync.Result(LeaderboardSync.Kind.SYNCED, 0, 0).describe("x"));
 	}
 
+	private static final String BEHIND_BODY = "{\"ok\":true,\"behind\":true,\"name\":\"Noble Mobile\",\"xp\":9000,\"level\":37,\"rank\":2,\"total\":5,"
+		+ "\"restore\":{\"xp\":9000,\"stats\":{\"bankstandingSeconds\":7000,\"clanHallWealth\":48200000,\"balloons\":40,\"gildedChains\":3,"
+		+ "\"sittingSeconds\":5400,\"bossDeaths\":17,\"gnomesKilled\":1320,\"caneHeldSeconds\":86400,\"geSecondsIn\":1000,\"geSecondsOut\":20000}}}";
+
+	@Test
+	public void aBehindReplyCarriesTheSavedRowToRestoreFrom()
+	{
+		LeaderboardSync.Result r = LeaderboardSync.parseResponse(GSON, 200, BEHIND_BODY);
+		assertEquals(LeaderboardSync.Kind.SYNCED, r.kind);
+		assertEquals(2, r.rank);
+		assertEquals(5, r.total);
+		LeaderboardSync.Snapshot s = r.restore;
+		assertEquals("Noble Mobile", s.name);
+		assertEquals(9000L, s.xp);
+		assertEquals(7000L, s.bankstandingSeconds);
+		assertEquals(48_200_000L, s.clanHallWealth);
+		assertEquals(40L, s.balloons);
+		assertEquals(3L, s.gildedChains);
+		assertEquals(5400L, s.sittingSeconds);
+		assertEquals(17L, s.bossDeaths);
+		assertEquals(1320L, s.gnomesKilled);
+		assertEquals(86400L, s.caneHeldSeconds);
+		assertEquals(1000L, s.geSecondsIn);
+		assertEquals(20000L, s.geSecondsOut);
+		assertEquals("Leaderboard: restoring your XP from trailsocial.net", r.describe("Noble Mobile"));
+	}
+
+	@Test
+	public void aNormalReplyHasNothingToRestore()
+	{
+		assertEquals(null, LeaderboardSync.parseResponse(GSON, 200, "{\"ok\":true,\"rank\":1,\"total\":1}").restore);
+		// restore data without the behind flag must be ignored
+		assertEquals(null, LeaderboardSync.parseResponse(GSON, 200, BEHIND_BODY.replace("\"behind\":true,", "")).restore);
+	}
+
+	@Test
+	public void unreadableRestoreDataIsIgnoredNotTrusted()
+	{
+		assertEquals(null, LeaderboardSync.parseResponse(GSON, 200, "{\"ok\":true,\"behind\":true}").restore);
+		assertEquals(null, LeaderboardSync.parseResponse(GSON, 200, "{\"ok\":true,\"behind\":true,\"restore\":\"nope\"}").restore);
+		LeaderboardSync.Snapshot s = LeaderboardSync.parseResponse(GSON, 200,
+			"{\"ok\":true,\"behind\":true,\"restore\":{\"xp\":\"lots\",\"stats\":{\"balloons\":-5,\"bossDeaths\":99999999999999999}}}").restore;
+		assertEquals("garbage numbers become 0", 0L, s.xp);
+		assertEquals("negatives become 0", 0L, s.balloons);
+		assertTrue("absurd numbers are capped", s.bossDeaths <= 10_000_000_000_000L);
+	}
+
+	@Test
+	public void restoredXpIsCappedAtTheGameMaximum()
+	{
+		LeaderboardSync.Snapshot s = LeaderboardSync.parseResponse(GSON, 200,
+			"{\"ok\":true,\"behind\":true,\"restore\":{\"xp\":9999999999,\"stats\":{}}}").restore;
+		assertEquals(BankstandingXP.MAX_XP, s.xp);
+	}
+
+	@Test
+	public void mergingKeepsTheLargerOfEveryValue()
+	{
+		LeaderboardSync.Snapshot local = new LeaderboardSync.Snapshot("A", 50, 10, 900, 1, 0, 5, 0, 7, 100, 20, 30);
+		LeaderboardSync.Snapshot saved = new LeaderboardSync.Snapshot("B", 9000, 7000, 100, 40, 3, 5400, 17, 2, 86400, 1000, 20000);
+		LeaderboardSync.Snapshot m = local.mergedWith(saved);
+		assertEquals("A", m.name);
+		assertEquals(9000L, m.xp);
+		assertEquals(7000L, m.bankstandingSeconds);
+		assertEquals("local progress is never lost", 900L, m.clanHallWealth);
+		assertEquals(40L, m.balloons);
+		assertEquals(7L, m.gnomesKilled);
+		assertEquals(20000L, m.geSecondsOut);
+		assertTrue(m.covers(local));
+		assertTrue(m.covers(saved));
+	}
+
+	@Test
+	public void coversMeansNothingWouldChange()
+	{
+		LeaderboardSync.Snapshot a = new LeaderboardSync.Snapshot("A", 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10);
+		assertTrue(a.covers(a));
+		assertFalse("one field behind is enough", a.covers(new LeaderboardSync.Snapshot("A", 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11)));
+	}
+
 	@Test
 	public void emptyAccountsAreNotWorthReporting()
 	{

@@ -27,6 +27,7 @@ final class LeaderboardSync
 	private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 	private static final long PAUSE_AFTER_REJECTION_MS = 30 * 60_000L;
 	private static final long PAUSE_AFTER_RATE_LIMIT_MS = 10 * 60_000L;
+	private static final long MAX_RESTORED_VALUE = 10_000_000_000_000L;
 
 	private final OkHttpClient http;
 	private final Gson gson;
@@ -72,6 +73,34 @@ final class LeaderboardSync
 			this.geSecondsOut = geSecondsOut;
 		}
 
+		/** Every field is the larger of the two, so restoring from the site can never lose local progress. */
+		Snapshot mergedWith(Snapshot saved)
+		{
+			return new Snapshot(name,
+				Math.max(xp, saved.xp),
+				Math.max(bankstandingSeconds, saved.bankstandingSeconds),
+				Math.max(clanHallWealth, saved.clanHallWealth),
+				Math.max(balloons, saved.balloons),
+				Math.max(gildedChains, saved.gildedChains),
+				Math.max(sittingSeconds, saved.sittingSeconds),
+				Math.max(bossDeaths, saved.bossDeaths),
+				Math.max(gnomesKilled, saved.gnomesKilled),
+				Math.max(caneHeldSeconds, saved.caneHeldSeconds),
+				Math.max(geSecondsIn, saved.geSecondsIn),
+				Math.max(geSecondsOut, saved.geSecondsOut));
+		}
+
+		/** True if every field of this snapshot is already at least what {@code other} has. */
+		boolean covers(Snapshot other)
+		{
+			return xp >= other.xp && bankstandingSeconds >= other.bankstandingSeconds
+				&& clanHallWealth >= other.clanHallWealth && balloons >= other.balloons
+				&& gildedChains >= other.gildedChains && sittingSeconds >= other.sittingSeconds
+				&& bossDeaths >= other.bossDeaths && gnomesKilled >= other.gnomesKilled
+				&& caneHeldSeconds >= other.caneHeldSeconds && geSecondsIn >= other.geSecondsIn
+				&& geSecondsOut >= other.geSecondsOut;
+		}
+
 		/** A brand-new account with nothing recorded yet is not worth a leaderboard row. */
 		boolean hasProgress()
 		{
@@ -91,12 +120,20 @@ final class LeaderboardSync
 		final Kind kind;
 		final int rank;
 		final int total;
+		/** Set when the site says this install is behind the saved row: the saved xp and stats to restore from. */
+		final Snapshot restore;
 
 		Result(Kind kind, int rank, int total)
+		{
+			this(kind, rank, total, null);
+		}
+
+		Result(Kind kind, int rank, int total, Snapshot restore)
 		{
 			this.kind = kind;
 			this.rank = rank;
 			this.total = total;
+			this.restore = restore;
 		}
 
 		/** True for outcomes the player can do something about (as opposed to success or a plain retry). */
@@ -126,6 +163,10 @@ final class LeaderboardSync
 			switch (kind)
 			{
 				case SYNCED:
+					if (restore != null)
+					{
+						return "Leaderboard: restoring your XP from trailsocial.net";
+					}
 					return rank > 0 && total > 0 ? "Leaderboard: synced, rank #" + rank + " of " + total : "Leaderboard: synced";
 				case THROTTLED:
 					return "Leaderboard: synced";
@@ -192,7 +233,8 @@ final class LeaderboardSync
 			{
 				return new Result(Kind.THROTTLED, 0, 0);
 			}
-			return new Result(Kind.SYNCED, intOr(json, "rank"), intOr(json, "total"));
+			Snapshot restore = booleanOr(json, "behind") ? parseRestore(json) : null;
+			return new Result(Kind.SYNCED, intOr(json, "rank"), intOr(json, "total"), restore);
 		}
 
 		switch (httpCode)
@@ -250,6 +292,47 @@ final class LeaderboardSync
 	{
 		JsonElement e = json == null ? null : json.get(key);
 		return e != null && e.isJsonPrimitive() ? e.getAsString() : null;
+	}
+
+	/** The saved row the site hands back to a client that is behind it, or null if it can't be read. */
+	private static Snapshot parseRestore(JsonObject json)
+	{
+		JsonElement saved = json.get("restore");
+		if (saved == null || !saved.isJsonObject())
+		{
+			return null;
+		}
+		JsonObject row = saved.getAsJsonObject();
+		JsonElement statsElement = row.get("stats");
+		JsonObject stats = statsElement != null && statsElement.isJsonObject() ? statsElement.getAsJsonObject() : new JsonObject();
+		return new Snapshot(
+			stringOr(json, "name"),
+			Math.min(longOr(row, "xp"), BankstandingXP.MAX_XP),
+			longOr(stats, "bankstandingSeconds"),
+			longOr(stats, "clanHallWealth"),
+			longOr(stats, "balloons"),
+			longOr(stats, "gildedChains"),
+			longOr(stats, "sittingSeconds"),
+			longOr(stats, "bossDeaths"),
+			longOr(stats, "gnomesKilled"),
+			longOr(stats, "caneHeldSeconds"),
+			longOr(stats, "geSecondsIn"),
+			longOr(stats, "geSecondsOut"));
+	}
+
+	/** A number from the site, never negative and never absurd; anything unreadable counts as 0. */
+	private static long longOr(JsonObject json, String key)
+	{
+		JsonElement e = json.get(key);
+		try
+		{
+			long v = e != null && e.isJsonPrimitive() ? e.getAsLong() : 0;
+			return Math.max(0, Math.min(v, MAX_RESTORED_VALUE));
+		}
+		catch (NumberFormatException ex)
+		{
+			return 0;
+		}
 	}
 
 	private static int intOr(JsonObject json, String key)

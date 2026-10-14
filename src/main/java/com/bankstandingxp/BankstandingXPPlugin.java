@@ -430,7 +430,19 @@ public class BankstandingXPPlugin extends Plugin
 			return;
 		}
 
-		LeaderboardSync.Snapshot snapshot = new LeaderboardSync.Snapshot(
+		LeaderboardSync.Snapshot snapshot = createSnapshot(name);
+		if (!snapshot.hasProgress())
+		{
+			return;
+		}
+
+		sync.send(code, snapshot, result -> onLeaderboardResult(result, name));
+	}
+
+	// Client thread only.
+	private LeaderboardSync.Snapshot createSnapshot(String name)
+	{
+		return new LeaderboardSync.Snapshot(
 			name,
 			(long) Math.floor(xp),
 			(long) Math.floor(bankstandingSeconds),
@@ -443,12 +455,6 @@ public class BankstandingXPPlugin extends Plugin
 			(long) Math.floor(caneHeldSeconds),
 			(long) Math.floor(secondsInGe),
 			(long) Math.floor(secondsOutsideGe));
-		if (!snapshot.hasProgress())
-		{
-			return;
-		}
-
-		sync.send(code, snapshot, result -> onLeaderboardResult(result, name));
 	}
 
 	private void onLeaderboardResult(LeaderboardSync.Result result, String name)
@@ -462,6 +468,68 @@ public class BankstandingXPPlugin extends Plugin
 		leaderboardPausedUntilMs = pause > 0 ? System.currentTimeMillis() + pause : 0;
 		showLeaderboardStatus(result.describe(name),
 			result.kind == LeaderboardSync.Kind.SYNCED ? Color.GREEN : result.needsAttention() ? Color.ORANGE : Color.YELLOW);
+
+		if (result.restore != null)
+		{
+			clientThread.invoke(() -> applyRestore(result.restore, name));
+		}
+	}
+
+	// The site says this install is behind the saved row (new computer, fresh install, wiped profile), so
+	// pull the saved xp and stats down. Takes the larger of each value, so nothing local is ever lost, and
+	// the site only ever hands back what it already holds, so this can't raise anyone's total.
+	// Client thread only.
+	private void applyRestore(LeaderboardSync.Snapshot saved, String name)
+	{
+		String current = rsn;
+		if (currentAccountHash == -1 || current == null || !current.equalsIgnoreCase(name))
+		{
+			return;
+		}
+
+		LeaderboardSync.Snapshot local = createSnapshot(current);
+		if (local.covers(saved))
+		{
+			showLeaderboardStatus("Leaderboard: synced", Color.GREEN);
+			return;
+		}
+
+		LeaderboardSync.Snapshot merged = local.mergedWith(saved);
+		if (merged.xp > local.xp)
+		{
+			xp = Math.min(merged.xp, BankstandingXP.MAX_XP);
+			lastWholeXp = (long) Math.floor(xp);
+		}
+		if (merged.bankstandingSeconds > local.bankstandingSeconds)
+		{
+			bankstandingSeconds = merged.bankstandingSeconds;
+		}
+		clanHallWealthPickedUp = merged.clanHallWealth;
+		balloonsPopped = merged.balloons;
+		gildedChainsPickedUp = merged.gildedChains;
+		if (merged.sittingSeconds > local.sittingSeconds)
+		{
+			secondsSpentSitting = merged.sittingSeconds;
+		}
+		bossDeaths = merged.bossDeaths;
+		gnomesKilled = merged.gnomesKilled;
+		if (merged.caneHeldSeconds > local.caneHeldSeconds)
+		{
+			caneHeldSeconds = merged.caneHeldSeconds;
+		}
+		if (merged.geSecondsIn > local.geSecondsIn)
+		{
+			secondsInGe = merged.geSecondsIn;
+		}
+		if (merged.geSecondsOut > local.geSecondsOut)
+		{
+			secondsOutsideGe = merged.geSecondsOut;
+		}
+
+		saveXp();
+		refreshPanel();
+		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "TrailSocial: restored your Bankstanding XP and stats from your leaderboard profile.", null);
+		showLeaderboardStatus("Leaderboard: restored your XP and stats from trailsocial.net", Color.GREEN);
 	}
 
 	private void onEventsFetched(List<TrailSocialEvent> events)
