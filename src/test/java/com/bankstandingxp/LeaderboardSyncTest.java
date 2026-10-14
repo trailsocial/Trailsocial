@@ -207,7 +207,7 @@ public class LeaderboardSyncTest
 
 	private static final String BOARD_BODY = "{\"ok\":true,\"generatedAt\":1,\"mine\":[],\"entries\":["
 		+ "{\"rank\":1,\"key\":\"bulkies\",\"name\":\"Bulkies\",\"level\":43,\"xp\":54321,\"stats\":{\"bankstandingSeconds\":651852,\"gnomesKilled\":5432}},"
-		+ "{\"rank\":2,\"key\":\"noble_mobile\",\"name\":\"Noble Mobile\",\"level\":29,\"xp\":12345,\"stats\":{\"bankstandingSeconds\":148500,\"gnomesKilled\":1320}},"
+		+ "{\"rank\":2,\"key\":\"noble_mobile\",\"name\":\"Noble Mobile\",\"level\":29,\"xp\":12345,\"stats\":{\"bankstandingSeconds\":148500,\"gnomesKilled\":1320,\"bossDeaths\":7,\"clanHallWealth\":21067424759,\"balloons\":11,\"gildedChains\":491,\"sittingSeconds\":2754,\"caneHeldSeconds\":756410,\"geSecondsIn\":359510,\"geSecondsOut\":15212}},"
 		+ "{\"rank\":3,\"key\":\"megh\",\"name\":\"Megh\",\"level\":17,\"xp\":3210}]}";
 
 	@Test
@@ -231,8 +231,17 @@ public class LeaderboardSyncTest
 		assertEquals(29, row.level);
 		assertEquals(12345L, row.xp);
 		assertEquals(2, row.rank);
-		assertEquals(148_500L, row.bankstandingSeconds);
-		assertEquals(1320L, row.gnomesKilled);
+		assertEquals(148_500L, row.stats.bankstandingSeconds);
+		assertEquals(1320L, row.stats.gnomesKilled);
+		assertEquals(7L, row.stats.bossDeaths);
+		assertEquals(21_067_424_759L, row.stats.clanHallWealth);
+		assertEquals(11L, row.stats.balloons);
+		assertEquals(491L, row.stats.gildedChains);
+		assertEquals(2754L, row.stats.sittingSeconds);
+		assertEquals(756_410L, row.stats.caneHeldSeconds);
+		assertEquals(359_510L, row.stats.geSecondsIn);
+		assertEquals(15_212L, row.stats.geSecondsOut);
+		assertEquals(12_345L, row.stats.xp);
 		assertTrue("underscore, case and nbsp all find the same player",
 			board.find("NOBLE_MOBILE") == row && board.find("noble mobile") == row);
 	}
@@ -250,8 +259,8 @@ public class LeaderboardSyncTest
 	public void missingStatsDefaultToZero()
 	{
 		LeaderboardSync.BoardRow row = LeaderboardSync.parseBoard(GSON, BOARD_BODY).find("Megh");
-		assertEquals(0L, row.bankstandingSeconds);
-		assertEquals(0L, row.gnomesKilled);
+		assertEquals(0L, row.stats.bankstandingSeconds);
+		assertEquals(0L, row.stats.gnomesKilled);
 		assertEquals(3, row.rank);
 	}
 

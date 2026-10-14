@@ -44,6 +44,14 @@ Type any of these in public, friends or clan chat (or a private message):
 - `!lvl bankstanding` - your Bankstanding level, XP and leaderboard rank
 - `!hours` - hours spent bankstanding
 - `!gnomes` - gnomes killed
+- `!deaths` - boss and raid deaths
+- `!wealth` - Clan Hall wealth picked up
+- `!balloons` - Clan Hall balloons burst
+- `!chains` - gilded chains picked up
+- `!sitting` - hours spent sitting
+- `!cane` - hours the Trailblazer cane has been held
+- `!ge` - hours in the Grand Exchange
+- `!geout` - hours outside the Grand Exchange
 
 Anyone running the plugin who sees the command has it replaced, on their own screen, with the sender's stats (just
 like RuneLite's built-in `!lvl attack`), so people without the plugin see the plain text. Your own message uses your

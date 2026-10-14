@@ -101,7 +101,7 @@ public class LeaderboardSyncIntegrationTest
 			assertTrue(name + " should be on the board", row != null);
 			assertTrue(row.rank >= 1 && row.level >= 1);
 			System.out.println("board row: " + row.name + " level " + row.level + " xp " + row.xp
-				+ " hours " + BankstandingChatCommands.formatHours(row.bankstandingSeconds) + " gnomes " + row.gnomesKilled);
+				+ " hours " + BankstandingChatCommands.formatHours(row.stats.bankstandingSeconds) + " gnomes " + row.stats.gnomesKilled);
 		}
 	}
 

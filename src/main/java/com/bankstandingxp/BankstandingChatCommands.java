@@ -13,11 +13,67 @@ final class BankstandingChatCommands
 	enum Command
 	{
 		/** !lvl bankstanding */
-		LEVEL,
+		LEVEL("!lvl bankstanding", null),
 		/** !hours */
-		HOURS,
+		HOURS("!hours", "Hours bankstanding"),
 		/** !gnomes */
-		GNOMES
+		GNOMES("!gnomes", "Gnomes killed"),
+		/** !deaths: boss and raid deaths */
+		DEATHS("!deaths", "Boss deaths"),
+		/** !wealth: wealth picked up in the Clan Hall */
+		WEALTH("!wealth", "Clan Hall wealth"),
+		/** !balloons */
+		BALLOONS("!balloons", "Balloons burst"),
+		/** !chains: gilded chains picked up */
+		CHAINS("!chains", "Gilded chains"),
+		/** !sitting: hours spent sitting */
+		SITTING("!sitting", "Hours sitting"),
+		/** !cane: hours the Trailblazer cane has been held */
+		CANE("!cane", "Hours holding the cane"),
+		/** !ge: hours in the Grand Exchange */
+		GE("!ge", "Hours in the GE"),
+		/** !geout: hours outside the Grand Exchange */
+		GE_OUT("!geout", "Hours outside the GE");
+
+		final String text;
+		/** What is said before the number, or null for the level command, which has its own layout. */
+		final String label;
+
+		Command(String text, String label)
+		{
+			this.text = text;
+			this.label = label;
+		}
+
+		/** The number this command reports for a player, already formatted. Not used by {@link #LEVEL}. */
+		String value(LeaderboardSync.Snapshot stats)
+		{
+			switch (this)
+			{
+				case HOURS:
+					return formatHours(stats.bankstandingSeconds);
+				case GNOMES:
+					return formatNumber(stats.gnomesKilled);
+				case DEATHS:
+					return formatNumber(stats.bossDeaths);
+				case WEALTH:
+					return formatNumber(stats.clanHallWealth) + " gp";
+				case BALLOONS:
+					return formatNumber(stats.balloons);
+				case CHAINS:
+					return formatNumber(stats.gildedChains);
+				case SITTING:
+					return formatHours(stats.sittingSeconds);
+				case CANE:
+					return formatHours(stats.caneHeldSeconds);
+				case GE:
+					return formatHours(stats.geSecondsIn);
+				case GE_OUT:
+					return formatHours(stats.geSecondsOut);
+				default:
+					throw new IllegalStateException(this + " has no single value");
+			}
+		}
 	}
 
 	private BankstandingChatCommands()
@@ -31,17 +87,15 @@ final class BankstandingChatCommands
 		{
 			return null;
 		}
-		switch (message.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " "))
+		String normalized = message.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
+		for (Command command : Command.values())
 		{
-			case "!lvl bankstanding":
-				return Command.LEVEL;
-			case "!hours":
-				return Command.HOURS;
-			case "!gnomes":
-				return Command.GNOMES;
-			default:
-				return null;
+			if (command.text.equals(normalized))
+			{
+				return command;
+			}
 		}
+		return null;
 	}
 
 	/** Seconds as hours with one decimal, e.g. 148500 -> "41.3". */
@@ -64,18 +118,16 @@ final class BankstandingChatCommands
 		final long xp;
 		final int rank;
 		final int total;
-		final long bankstandingSeconds;
-		final long gnomesKilled;
+		final LeaderboardSync.Snapshot stats;
 
-		Stats(String name, int level, long xp, int rank, int total, long bankstandingSeconds, long gnomesKilled)
+		Stats(String name, int level, long xp, int rank, int total, LeaderboardSync.Snapshot stats)
 		{
 			this.name = name;
 			this.level = level;
 			this.xp = xp;
 			this.rank = rank;
 			this.total = total;
-			this.bankstandingSeconds = bankstandingSeconds;
-			this.gnomesKilled = gnomesKilled;
+			this.stats = stats;
 		}
 	}
 }

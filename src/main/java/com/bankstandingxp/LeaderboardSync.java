@@ -266,17 +266,15 @@ final class LeaderboardSync
 		final int level;
 		final long xp;
 		final int rank;
-		final long bankstandingSeconds;
-		final long gnomesKilled;
+		final Snapshot stats;
 
-		BoardRow(String name, int level, long xp, int rank, long bankstandingSeconds, long gnomesKilled)
+		BoardRow(String name, int level, long xp, int rank, Snapshot stats)
 		{
 			this.name = name;
 			this.level = level;
 			this.xp = xp;
 			this.rank = rank;
-			this.bankstandingSeconds = bankstandingSeconds;
-			this.gnomesKilled = gnomesKilled;
+			this.stats = stats;
 		}
 	}
 
@@ -343,7 +341,11 @@ final class LeaderboardSync
 			JsonElement statsElement = row.get("stats");
 			JsonObject stats = statsElement != null && statsElement.isJsonObject() ? statsElement.getAsJsonObject() : new JsonObject();
 			rows.put(normalizeName(name), new BoardRow(name, intOr(row, "level"), longOr(row, "xp"), intOr(row, "rank"),
-				longOr(stats, "bankstandingSeconds"), longOr(stats, "gnomesKilled")));
+				new Snapshot(name, longOr(row, "xp"),
+					longOr(stats, "bankstandingSeconds"), longOr(stats, "clanHallWealth"), longOr(stats, "balloons"),
+					longOr(stats, "gildedChains"), longOr(stats, "sittingSeconds"), longOr(stats, "bossDeaths"),
+					longOr(stats, "gnomesKilled"), longOr(stats, "caneHeldSeconds"), longOr(stats, "geSecondsIn"),
+					longOr(stats, "geSecondsOut"))));
 		}
 		return new Board(rows, rows.size());
 	}

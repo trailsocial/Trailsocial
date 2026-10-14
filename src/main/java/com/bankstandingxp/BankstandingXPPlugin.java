@@ -933,8 +933,7 @@ public class BankstandingXPPlugin extends Plugin
 		LeaderboardSync.BoardRow onBoard = board == null ? null : board.find(self);
 		long wholeXp = (long) Math.floor(xp);
 		return new BankstandingChatCommands.Stats(self, BankstandingXP.getLevelForXp(wholeXp), wholeXp,
-			onBoard == null ? 0 : onBoard.rank, board == null ? 0 : board.total,
-			(long) Math.floor(bankstandingSeconds), gnomesKilled);
+			onBoard == null ? 0 : onBoard.rank, board == null ? 0 : board.total, createSnapshot(self));
 	}
 
 	private void lookUp(MessageNode node, BankstandingChatCommands.Command command, String sender)
@@ -979,8 +978,7 @@ public class BankstandingXPPlugin extends Plugin
 	private static BankstandingChatCommands.Stats statsFor(LeaderboardSync.Board board, String player)
 	{
 		LeaderboardSync.BoardRow row = board.find(player);
-		return row == null ? null : new BankstandingChatCommands.Stats(row.name, row.level, row.xp, row.rank, board.total,
-			row.bankstandingSeconds, row.gnomesKilled);
+		return row == null ? null : new BankstandingChatCommands.Stats(row.name, row.level, row.xp, row.rank, board.total, row.stats);
 	}
 
 	// stats == null means the player isn't on the leaderboard.
@@ -1007,13 +1005,9 @@ public class BankstandingXPPlugin extends Plugin
 							.append(ChatColorType.HIGHLIGHT).append("#" + stats.rank + " of " + stats.total);
 					}
 					break;
-				case HOURS:
-					text.append(ChatColorType.NORMAL).append("Hours bankstanding: ")
-						.append(ChatColorType.HIGHLIGHT).append(BankstandingChatCommands.formatHours(stats.bankstandingSeconds));
-					break;
 				default:
-					text.append(ChatColorType.NORMAL).append("Gnomes killed: ")
-						.append(ChatColorType.HIGHLIGHT).append(BankstandingChatCommands.formatNumber(stats.gnomesKilled));
+					text.append(ChatColorType.NORMAL).append(command.label + ": ")
+						.append(ChatColorType.HIGHLIGHT).append(command.value(stats.stats));
 					break;
 			}
 		}
