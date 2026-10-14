@@ -311,7 +311,7 @@ class BankstandingXPPanel extends PluginPanel
 
 	private static String wrap(String text)
 	{
-		return "<html><div style='width:170px'>" + text + "</div></html>";
+		return "<html><div style='width:150px'>" + text + "</div></html>";
 	}
 
 	private static String formatDuration(long totalSeconds)
