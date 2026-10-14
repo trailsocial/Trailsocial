@@ -37,6 +37,20 @@ new install is behind your saved row, keeps the saved row safe instead of overwr
 restores your XP and stats from it (it keeps the larger of each value, so nothing local is lost). To
 deliberately start over, remove the RuneScape account from your profile and add it again.
 
+## Chat commands
+
+Type any of these in public, friends or clan chat (or a private message):
+
+- `!lvl bankstanding` - your Bankstanding level, XP and leaderboard rank
+- `!hours` - hours spent bankstanding
+- `!gnomes` - gnomes killed
+
+Anyone running the plugin who sees the command has it replaced, on their own screen, with the sender's stats (just
+like RuneLite's built-in `!lvl attack`), so people without the plugin see the plain text. Your own message uses your
+live numbers; for other players the plugin reads the public leaderboard, which it downloads at most once a minute
+and searches by name locally, so no player names are sent anywhere. Players who haven't synced show up as not on
+the leaderboard. Turn this off with the **Chat commands** setting.
+
 ## Project layout
 
 Standard RuneLite plugin template

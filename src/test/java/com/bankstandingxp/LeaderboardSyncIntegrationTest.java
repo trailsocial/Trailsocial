@@ -78,6 +78,33 @@ public class LeaderboardSyncIntegrationTest
 		assertTrue(normal.restore == null);
 	}
 
+	/** The chat commands read the public board with the real client; checks the real reply parses and contains the account. */
+	@Test
+	public void theRealBoardCanBeDownloadedAndSearched() throws Exception
+	{
+		String url = System.getenv("TS_LEADERBOARD_URL");
+		String name = System.getenv("TS_LEADERBOARD_NAME");
+		assumeNotNull(url);
+
+		AtomicReference<LeaderboardSync.Board> out = new AtomicReference<>();
+		CountDownLatch done = new CountDownLatch(1);
+		new LeaderboardSync(new OkHttpClient(), new Gson(), url).fetchBoard(board ->
+		{
+			out.set(board);
+			done.countDown();
+		});
+		assertTrue("no answer within 15s", done.await(15, TimeUnit.SECONDS));
+		assertTrue("the board should download and parse", out.get() != null);
+		if (name != null)
+		{
+			LeaderboardSync.BoardRow row = out.get().find(name);
+			assertTrue(name + " should be on the board", row != null);
+			assertTrue(row.rank >= 1 && row.level >= 1);
+			System.out.println("board row: " + row.name + " level " + row.level + " xp " + row.xp
+				+ " hours " + BankstandingChatCommands.formatHours(row.bankstandingSeconds) + " gnomes " + row.gnomesKilled);
+		}
+	}
+
 	@Test
 	public void realClientAgainstRealServer() throws Exception
 	{

@@ -205,6 +205,84 @@ public class LeaderboardSyncTest
 		assertFalse("one field behind is enough", a.covers(new LeaderboardSync.Snapshot("A", 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11)));
 	}
 
+	private static final String BOARD_BODY = "{\"ok\":true,\"generatedAt\":1,\"mine\":[],\"entries\":["
+		+ "{\"rank\":1,\"key\":\"bulkies\",\"name\":\"Bulkies\",\"level\":43,\"xp\":54321,\"stats\":{\"bankstandingSeconds\":651852,\"gnomesKilled\":5432}},"
+		+ "{\"rank\":2,\"key\":\"noble_mobile\",\"name\":\"Noble Mobile\",\"level\":29,\"xp\":12345,\"stats\":{\"bankstandingSeconds\":148500,\"gnomesKilled\":1320}},"
+		+ "{\"rank\":3,\"key\":\"megh\",\"name\":\"Megh\",\"level\":17,\"xp\":3210}]}";
+
+	@Test
+	public void namesAreMatchedTheWayOldSchoolDoes()
+	{
+		assertEquals("noble mobile", LeaderboardSync.normalizeName("Noble Mobile"));
+		assertEquals("noble mobile", LeaderboardSync.normalizeName("NOBLE_MOBILE"));
+		assertEquals("noble mobile", LeaderboardSync.normalizeName("noble-mobile"));
+		assertEquals("noble mobile", LeaderboardSync.normalizeName("Noble Mobile"));
+		assertEquals("noble mobile", LeaderboardSync.normalizeName("  noble   mobile "));
+		assertEquals("", LeaderboardSync.normalizeName(null));
+	}
+
+	@Test
+	public void theBoardIsSearchableByPlayerName()
+	{
+		LeaderboardSync.Board board = LeaderboardSync.parseBoard(GSON, BOARD_BODY);
+		assertEquals(3, board.total);
+		LeaderboardSync.BoardRow row = board.find("Noble Mobile");
+		assertEquals("Noble Mobile", row.name);
+		assertEquals(29, row.level);
+		assertEquals(12345L, row.xp);
+		assertEquals(2, row.rank);
+		assertEquals(148_500L, row.bankstandingSeconds);
+		assertEquals(1320L, row.gnomesKilled);
+		assertTrue("underscore, case and nbsp all find the same player",
+			board.find("NOBLE_MOBILE") == row && board.find("noble mobile") == row);
+	}
+
+	@Test
+	public void aPlayerNotOnTheBoardIsNotFound()
+	{
+		LeaderboardSync.Board board = LeaderboardSync.parseBoard(GSON, BOARD_BODY);
+		assertEquals(null, board.find("Zezima"));
+		assertEquals(null, board.find(""));
+		assertEquals(null, board.find(null));
+	}
+
+	@Test
+	public void missingStatsDefaultToZero()
+	{
+		LeaderboardSync.BoardRow row = LeaderboardSync.parseBoard(GSON, BOARD_BODY).find("Megh");
+		assertEquals(0L, row.bankstandingSeconds);
+		assertEquals(0L, row.gnomesKilled);
+		assertEquals(3, row.rank);
+	}
+
+	@Test
+	public void anUnusableBoardReplyIsNull()
+	{
+		assertEquals(null, LeaderboardSync.parseBoard(GSON, ""));
+		assertEquals(null, LeaderboardSync.parseBoard(GSON, "<html>502</html>"));
+		assertEquals(null, LeaderboardSync.parseBoard(GSON, "{}"));
+		assertEquals(null, LeaderboardSync.parseBoard(GSON, "{\"ok\":false,\"entries\":[]}"));
+		assertEquals(null, LeaderboardSync.parseBoard(GSON, "{\"ok\":true}"));
+		assertEquals(null, LeaderboardSync.parseBoard(GSON, "{\"ok\":true,\"entries\":\"nope\"}"));
+	}
+
+	@Test
+	public void anEmptyBoardIsStillABoard()
+	{
+		LeaderboardSync.Board board = LeaderboardSync.parseBoard(GSON, "{\"ok\":true,\"entries\":[]}");
+		assertEquals(0, board.total);
+		assertEquals(null, board.find("Anyone"));
+	}
+
+	@Test
+	public void junkRowsAreSkippedNotFatal()
+	{
+		LeaderboardSync.Board board = LeaderboardSync.parseBoard(GSON,
+			"{\"ok\":true,\"entries\":[5,\"x\",{\"level\":3},{\"name\":\"Good One\",\"level\":9,\"xp\":99,\"rank\":1}]}");
+		assertEquals(1, board.total);
+		assertEquals(9, board.find("good one").level);
+	}
+
 	@Test
 	public void emptyAccountsAreNotWorthReporting()
 	{

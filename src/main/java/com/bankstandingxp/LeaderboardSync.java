@@ -4,6 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.function.Consumer;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -254,6 +257,131 @@ final class LeaderboardSync
 			default:
 				return new Result(Kind.SERVER_ERROR, 0, 0);
 		}
+	}
+
+	/** One player's row on the public leaderboard, as the chat commands need it. */
+	static final class BoardRow
+	{
+		final String name;
+		final int level;
+		final long xp;
+		final int rank;
+		final long bankstandingSeconds;
+		final long gnomesKilled;
+
+		BoardRow(String name, int level, long xp, int rank, long bankstandingSeconds, long gnomesKilled)
+		{
+			this.name = name;
+			this.level = level;
+			this.xp = xp;
+			this.rank = rank;
+			this.bankstandingSeconds = bankstandingSeconds;
+			this.gnomesKilled = gnomesKilled;
+		}
+	}
+
+	/** The public leaderboard, searchable by player name. */
+	static final class Board
+	{
+		private final Map<String, BoardRow> rows;
+		final int total;
+
+		Board(Map<String, BoardRow> rows, int total)
+		{
+			this.rows = rows;
+			this.total = total;
+		}
+
+		/** The row for a player, whatever the capitalisation or the kind of space/underscore in the name. */
+		BoardRow find(String playerName)
+		{
+			return rows.get(normalizeName(playerName));
+		}
+	}
+
+	/** OSRS treats spaces, underscores, hyphens and non-breaking spaces as the same character, and names ignore case. */
+	static String normalizeName(String name)
+	{
+		return name == null ? "" : name.toLowerCase(Locale.ROOT).replaceAll("[\\u00a0_\\-\\s]+", " ").trim();
+	}
+
+	/** @return the board, or null if the reply isn't a usable leaderboard */
+	static Board parseBoard(Gson gson, String body)
+	{
+		JsonObject json = null;
+		try
+		{
+			json = gson.fromJson(body, JsonObject.class);
+		}
+		catch (RuntimeException e)
+		{
+			// not JSON
+		}
+		if (json == null || !booleanOr(json, "ok"))
+		{
+			return null;
+		}
+		JsonElement entries = json.get("entries");
+		if (entries == null || !entries.isJsonArray())
+		{
+			return null;
+		}
+
+		Map<String, BoardRow> rows = new HashMap<>();
+		for (JsonElement element : entries.getAsJsonArray())
+		{
+			if (!element.isJsonObject())
+			{
+				continue;
+			}
+			JsonObject row = element.getAsJsonObject();
+			String name = stringOr(row, "name");
+			if (name == null)
+			{
+				continue;
+			}
+			JsonElement statsElement = row.get("stats");
+			JsonObject stats = statsElement != null && statsElement.isJsonObject() ? statsElement.getAsJsonObject() : new JsonObject();
+			rows.put(normalizeName(name), new BoardRow(name, intOr(row, "level"), longOr(row, "xp"), intOr(row, "rank"),
+				longOr(stats, "bankstandingSeconds"), longOr(stats, "gnomesKilled")));
+		}
+		return new Board(rows, rows.size());
+	}
+
+	/** Downloads the public leaderboard (no player names are sent). {@code done} gets null if that fails. */
+	void fetchBoard(Consumer<Board> done)
+	{
+		Request request = new Request.Builder()
+			.url(url)
+			.post(RequestBody.create(JSON, "{\"action\":\"board\"}"))
+			.build();
+
+		http.newCall(request).enqueue(new Callback()
+		{
+			@Override
+			public void onFailure(Call call, IOException e)
+			{
+				done.accept(null);
+			}
+
+			@Override
+			public void onResponse(Call call, Response response)
+			{
+				Board board = null;
+				try (ResponseBody body = response.body())
+				{
+					if (response.isSuccessful() && body != null)
+					{
+						board = parseBoard(gson, body.string());
+					}
+				}
+				catch (IOException e)
+				{
+					// leave board null
+				}
+				done.accept(board);
+			}
+		});
 	}
 
 	void send(String code, Snapshot snapshot, Consumer<Result> done)

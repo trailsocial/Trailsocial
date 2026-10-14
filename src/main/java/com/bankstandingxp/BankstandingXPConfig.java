@@ -56,6 +56,18 @@ public interface BankstandingXPConfig extends Config
 		return 100;
 	}
 
+	@ConfigItem(
+		keyName = "chatCommands",
+		name = "Chat commands",
+		description = "Replace !lvl bankstanding, !hours and !gnomes in chat with that player's Bankstanding stats. "
+			+ "Other players' stats are looked up on the public TrailSocial leaderboard.",
+		position = 8
+	)
+	default boolean chatCommands()
+	{
+		return true;
+	}
+
 	@ConfigSection(
 		name = "Leaderboard",
 		description = "Sync your Bankstanding XP and stats to the TrailSocial leaderboard",

@@ -9,7 +9,9 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -32,6 +34,7 @@ import net.runelite.api.GameState;
 import net.runelite.api.GroundObject;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
+import net.runelite.api.MessageNode;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
 import net.runelite.api.ObjectComposition;
@@ -48,6 +51,7 @@ import net.runelite.api.WorldView;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ActorDeath;
+import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
@@ -57,6 +61,8 @@ import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.client.Notifier;
 import net.runelite.client.callback.ClientThread;
+import net.runelite.client.chat.ChatColorType;
+import net.runelite.client.chat.ChatMessageBuilder;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -105,6 +111,10 @@ public class BankstandingXPPlugin extends Plugin
 	private static final int EVENTS_POLL_PERIOD_SECONDS = 300;
 	private static final int LEADERBOARD_INITIAL_DELAY_SECONDS = 45;
 	private static final int LEADERBOARD_PERIOD_SECONDS = 300;
+	private static final long BOARD_TTL_MS = 60_000;
+	private static final Set<ChatMessageType> CHAT_COMMAND_TYPES = EnumSet.of(
+		ChatMessageType.PUBLICCHAT, ChatMessageType.PRIVATECHAT, ChatMessageType.PRIVATECHATOUT,
+		ChatMessageType.FRIENDSCHAT, ChatMessageType.CLAN_CHAT, ChatMessageType.CLAN_GUEST_CHAT);
 	private static final Type EVENT_LIST_TYPE = new TypeToken<List<TrailSocialEvent>>()
 	{
 	}.getType();
@@ -197,6 +207,27 @@ public class BankstandingXPPlugin extends Plugin
 	// In-game name of the logged-in account, captured on the client thread; null while logged out.
 	private volatile String rsn;
 	private volatile long leaderboardPausedUntilMs = 0;
+
+	// Chat commands: other players' stats come from the public leaderboard, cached for a minute.
+	// Only touched on the client thread.
+	private LeaderboardSync.Board boardCache;
+	private long boardFetchedAtMs = 0;
+	private boolean boardFetching = false;
+	private final List<PendingLookup> pendingLookups = new ArrayList<>();
+
+	private static final class PendingLookup
+	{
+		private final MessageNode node;
+		private final BankstandingChatCommands.Command command;
+		private final String sender;
+
+		private PendingLookup(MessageNode node, BankstandingChatCommands.Command command, String sender)
+		{
+			this.node = node;
+			this.command = command;
+			this.sender = sender;
+		}
+	}
 	private List<TrailSocialEvent> recentEvents = List.of();
 	private boolean hasUnseenEvents = false;
 	private boolean splashShownThisSession = false;
@@ -317,6 +348,9 @@ public class BankstandingXPPlugin extends Plugin
 		}
 		leaderboard = null;
 		rsn = null;
+		boardCache = null;
+		boardFetching = false;
+		pendingLookups.clear();
 		overlayManager.remove(overlay);
 		overlayManager.remove(xpDropOverlay);
 		overlayManager.remove(clanHallOverlay);
@@ -855,6 +889,132 @@ public class BankstandingXPPlugin extends Plugin
 		lastWholeXp = (long) Math.floor(xp);
 		// The popup only ever shows the standard cost per drop; agility's bigger cost is deliberately not shown in the UI.
 		pendingPenalty += Math.min(Math.round(lost), XpDropTracker.PENALTY_PER_DROP);
+	}
+
+	// !lvl bankstanding, !hours and !gnomes: replace the command with the sender's stats, on this player's screen only.
+	@Subscribe
+	public void onChatMessage(ChatMessage event)
+	{
+		if (!config.chatCommands() || !CHAT_COMMAND_TYPES.contains(event.getType()))
+		{
+			return;
+		}
+		BankstandingChatCommands.Command command = BankstandingChatCommands.parse(Text.removeTags(event.getMessage()));
+		if (command == null)
+		{
+			return;
+		}
+
+		String self = rsn;
+		// On a private message you sent, the name on the message is the recipient's, not yours.
+		String sender = event.getType() == ChatMessageType.PRIVATECHATOUT ? self : Text.sanitize(event.getName());
+		if (sender == null || sender.isEmpty())
+		{
+			return;
+		}
+
+		if (self != null && sender.equalsIgnoreCase(self))
+		{
+			showCommand(event.getMessageNode(), command, ownStats(self), sender);
+		}
+		else
+		{
+			lookUp(event.getMessageNode(), command, sender);
+		}
+	}
+
+	private BankstandingChatCommands.Stats ownStats(String self)
+	{
+		LeaderboardSync.Board board = boardCache;
+		LeaderboardSync.BoardRow onBoard = board == null ? null : board.find(self);
+		long wholeXp = (long) Math.floor(xp);
+		return new BankstandingChatCommands.Stats(self, BankstandingXP.getLevelForXp(wholeXp), wholeXp,
+			onBoard == null ? 0 : onBoard.rank, board == null ? 0 : board.total,
+			(long) Math.floor(bankstandingSeconds), gnomesKilled);
+	}
+
+	private void lookUp(MessageNode node, BankstandingChatCommands.Command command, String sender)
+	{
+		LeaderboardSync sync = leaderboard;
+		if (sync == null)
+		{
+			return;
+		}
+		if (boardCache != null && System.currentTimeMillis() - boardFetchedAtMs < BOARD_TTL_MS)
+		{
+			showCommand(node, command, statsFor(boardCache, sender), sender);
+			return;
+		}
+
+		pendingLookups.add(new PendingLookup(node, command, sender));
+		if (!boardFetching)
+		{
+			boardFetching = true;
+			sync.fetchBoard(fetched -> clientThread.invoke(() -> onBoardFetched(fetched)));
+		}
+	}
+
+	private void onBoardFetched(LeaderboardSync.Board fetched)
+	{
+		boardFetching = false;
+		List<PendingLookup> waiting = new ArrayList<>(pendingLookups);
+		pendingLookups.clear();
+		if (fetched == null)
+		{
+			return; // couldn't reach the site: leave the typed commands as they were
+		}
+
+		boardCache = fetched;
+		boardFetchedAtMs = System.currentTimeMillis();
+		for (PendingLookup p : waiting)
+		{
+			showCommand(p.node, p.command, statsFor(fetched, p.sender), p.sender);
+		}
+	}
+
+	private static BankstandingChatCommands.Stats statsFor(LeaderboardSync.Board board, String player)
+	{
+		LeaderboardSync.BoardRow row = board.find(player);
+		return row == null ? null : new BankstandingChatCommands.Stats(row.name, row.level, row.xp, row.rank, board.total,
+			row.bankstandingSeconds, row.gnomesKilled);
+	}
+
+	// stats == null means the player isn't on the leaderboard.
+	private void showCommand(MessageNode node, BankstandingChatCommands.Command command, BankstandingChatCommands.Stats stats, String player)
+	{
+		ChatMessageBuilder text = new ChatMessageBuilder();
+		if (stats == null)
+		{
+			text.append(ChatColorType.HIGHLIGHT).append(player)
+				.append(ChatColorType.NORMAL).append(" is not on the TrailSocial leaderboard");
+		}
+		else
+		{
+			switch (command)
+			{
+				case LEVEL:
+					text.append(ChatColorType.NORMAL).append("Level Bankstanding: ")
+						.append(ChatColorType.HIGHLIGHT).append(String.valueOf(stats.level))
+						.append(ChatColorType.NORMAL).append(" Experience: ")
+						.append(ChatColorType.HIGHLIGHT).append(BankstandingChatCommands.formatNumber(stats.xp));
+					if (stats.rank > 0)
+					{
+						text.append(ChatColorType.NORMAL).append(" Rank: ")
+							.append(ChatColorType.HIGHLIGHT).append("#" + stats.rank + " of " + stats.total);
+					}
+					break;
+				case HOURS:
+					text.append(ChatColorType.NORMAL).append("Hours bankstanding: ")
+						.append(ChatColorType.HIGHLIGHT).append(BankstandingChatCommands.formatHours(stats.bankstandingSeconds));
+					break;
+				default:
+					text.append(ChatColorType.NORMAL).append("Gnomes killed: ")
+						.append(ChatColorType.HIGHLIGHT).append(BankstandingChatCommands.formatNumber(stats.gnomesKilled));
+					break;
+			}
+		}
+		node.setRuneLiteFormatMessage(text.build());
+		client.refreshChat();
 	}
 
 	@Subscribe
