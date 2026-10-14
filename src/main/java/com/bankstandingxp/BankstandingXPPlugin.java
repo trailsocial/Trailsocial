@@ -86,6 +86,8 @@ public class BankstandingXPPlugin extends Plugin
 	private static final double SECONDS_PER_TICK = 0.6;
 	private static final int LEVEL_UP_SPOTANIM_KEY = 1337;
 	private static final int XP_PER_HOUR = 300;
+	// Wearing the full TrailSocial outfit (TrailSocialOutfit) multiplies Bankstanding xp gain by this.
+	private static final int OUTFIT_XP_MULTIPLIER = 2;
 	private static final int BANK_RADIUS = 12;
 	private static final int IDLE_THRESHOLD_SECONDS = 30;
 
@@ -96,7 +98,7 @@ public class BankstandingXPPlugin extends Plugin
 	// Gilded chainbody, per the official Grand Exchange item id (obj=20149)
 	private static final int GILDED_CHAINBODY_ITEM_ID = 20149;
 	// Trailblazer cane (tier 3 Leagues relic hunter reward), per the official Grand Exchange item id (obj=25013)
-	private static final int TRAILBLAZER_CANE_ITEM_ID = 25013;
+	private static final int TRAILBLAZER_CANE_ITEM_ID = TrailSocialOutfit.TRAILBLAZER_CANE;
 
 	private static final String EVENTS_URL = "https://trailsocial.net/.netlify/functions/get-event";
 	private static final int EVENTS_POLL_INITIAL_DELAY_SECONDS = 15;
@@ -691,6 +693,7 @@ public class BankstandingXPPlugin extends Plugin
 		fightingBoss = isFightingBoss(player);
 
 		ItemContainer equipment = client.getItemContainer(InventoryID.WORN);
+		boolean fullOutfit = equipment != null && TrailSocialOutfit.isComplete(equipment::contains);
 		if (equipment != null && equipment.contains(TRAILBLAZER_CANE_ITEM_ID))
 		{
 			caneHeldSeconds += SECONDS_PER_TICK;
@@ -730,7 +733,7 @@ public class BankstandingXPPlugin extends Plugin
 
 		int levelBefore = BankstandingXP.getLevelForXp((long) Math.floor(xp));
 
-		double xpGain = XP_PER_HOUR * (SECONDS_PER_TICK / 3600.0);
+		double xpGain = XP_PER_HOUR * (SECONDS_PER_TICK / 3600.0) * (fullOutfit ? OUTFIT_XP_MULTIPLIER : 1);
 		xp = Math.min(BankstandingXP.MAX_XP, xp + xpGain);
 
 		long wholeXp = (long) Math.floor(xp);
