@@ -199,6 +199,8 @@ public class BankstandingXPPlugin extends Plugin
 	private final XpDropTracker xpDrops = new XpDropTracker();
 	// Bankstanding xp lost since the last game tick, shown as one "-N" popup instead of one per skill.
 	private long pendingPenalty = 0;
+	// Whether the player was in the Grand Exchange on the last game tick; xp drops there cost nothing.
+	private boolean inGrandExchange = false;
 
 	private LeaderboardSync leaderboard;
 	private ScheduledFuture<?> leaderboardTask;
@@ -779,7 +781,7 @@ public class BankstandingXPPlugin extends Plugin
 			secondsSpentSitting += SECONDS_PER_TICK;
 		}
 
-		boolean inGrandExchange = instanceRegionId == GRAND_EXCHANGE_REGION_ID;
+		inGrandExchange = instanceRegionId == GRAND_EXCHANGE_REGION_ID;
 		if (inGrandExchange)
 		{
 			secondsInGe += SECONDS_PER_TICK;
@@ -873,7 +875,7 @@ public class BankstandingXPPlugin extends Plugin
 		}
 	}
 
-	// Skilling costs Bankstanding xp per xp drop; combat xp does not (see XpDropTracker.penaltyFor).
+	// Skilling costs Bankstanding xp per xp drop; combat xp and anything earned in the Grand Exchange does not (see XpDropTracker.penaltyFor).
 	@Subscribe
 	public void onStatChanged(StatChanged event)
 	{
@@ -882,10 +884,10 @@ public class BankstandingXPPlugin extends Plugin
 			return;
 		}
 
-		int penalty = XpDropTracker.penaltyFor(event.getSkill());
+		int penalty = XpDropTracker.penaltyFor(event.getSkill(), inGrandExchange);
 		if (penalty <= 0)
 		{
-			return; // combat xp is free
+			return; // combat xp, or xp earned in the Grand Exchange, is free
 		}
 
 		double lost = Math.min(penalty, xp);

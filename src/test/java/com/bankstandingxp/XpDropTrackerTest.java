@@ -81,6 +81,18 @@ public class XpDropTrackerTest
 	}
 
 	@Test
+	public void nothingIsLostInTheGrandExchange()
+	{
+		for (Skill skill : Skill.values())
+		{
+			assertEquals(skill + " is free in the GE", 0, XpDropTracker.penaltyFor(skill, true));
+			assertEquals(skill + " is unchanged elsewhere", XpDropTracker.penaltyFor(skill), XpDropTracker.penaltyFor(skill, false));
+		}
+		assertEquals(5, XpDropTracker.penaltyFor(Skill.AGILITY, false));
+		assertEquals(1, XpDropTracker.penaltyFor(Skill.COOKING, false));
+	}
+
+	@Test
 	public void aCombatDropStillMovesTheBaseline()
 	{
 		Map<Skill, Integer> xp = new HashMap<>();

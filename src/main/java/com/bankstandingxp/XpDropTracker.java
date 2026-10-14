@@ -18,6 +18,12 @@ final class XpDropTracker
 	private final Map<Skill, Integer> lastXp = new EnumMap<>(Skill.class);
 	private boolean ready;
 
+	/** Same as {@link #penaltyFor(Skill)}, except nothing is ever lost while standing in the Grand Exchange. */
+	static int penaltyFor(Skill skill, boolean inGrandExchange)
+	{
+		return inGrandExchange ? 0 : penaltyFor(skill);
+	}
+
 	/** Bankstanding xp lost for one xp drop in the given skill: nothing for combat, agility hurts the most. */
 	static int penaltyFor(Skill skill)
 	{
