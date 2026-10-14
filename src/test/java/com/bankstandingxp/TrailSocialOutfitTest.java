@@ -77,6 +77,14 @@ public class TrailSocialOutfitTest
 	}
 
 	@Test
+	public void theOutfitIsFiveTimesTheXpAndStaysUnderTheServerCap()
+	{
+		assertEquals(5, TrailSocialOutfit.XP_MULTIPLIER);
+		// the leaderboard rejects growth above 2250 xp/hour (MAX_XP_PER_HOUR in bankstanding.js)
+		assertTrue(300 * TrailSocialOutfit.XP_MULTIPLIER < 2250);
+	}
+
+	@Test
 	public void theCaneMatchesTheOneTheHeldTimeTrackerUses()
 	{
 		assertEquals(25013, TrailSocialOutfit.TRAILBLAZER_CANE);

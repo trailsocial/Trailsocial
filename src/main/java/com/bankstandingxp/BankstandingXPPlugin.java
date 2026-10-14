@@ -92,8 +92,6 @@ public class BankstandingXPPlugin extends Plugin
 	private static final double SECONDS_PER_TICK = 0.6;
 	private static final int LEVEL_UP_SPOTANIM_KEY = 1337;
 	private static final int XP_PER_HOUR = 300;
-	// Wearing the full TrailSocial outfit (TrailSocialOutfit) multiplies Bankstanding xp gain by this.
-	private static final int OUTFIT_XP_MULTIPLIER = 2;
 	private static final int BANK_RADIUS = 12;
 	private static final int IDLE_THRESHOLD_SECONDS = 30;
 
@@ -839,7 +837,7 @@ public class BankstandingXPPlugin extends Plugin
 
 		int levelBefore = BankstandingXP.getLevelForXp((long) Math.floor(xp));
 
-		double xpGain = XP_PER_HOUR * (SECONDS_PER_TICK / 3600.0) * (fullOutfit ? OUTFIT_XP_MULTIPLIER : 1);
+		double xpGain = XP_PER_HOUR * (SECONDS_PER_TICK / 3600.0) * (fullOutfit ? TrailSocialOutfit.XP_MULTIPLIER : 1);
 		xp = Math.min(BankstandingXP.MAX_XP, xp + xpGain);
 
 		long wholeXp = (long) Math.floor(xp);

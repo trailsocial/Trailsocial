@@ -3,12 +3,20 @@ package com.bankstandingxp;
 import java.util.function.IntPredicate;
 
 /**
- * The TrailSocial clan outfit. Wearing every piece doubles Bankstanding XP; what is in any other
- * slot (boots, gloves, ammo, ring...) does not matter. Ids are the OSRS item ids, checked against
- * the OSRS Wiki, and only the exact items named here count (for example a Twisted coat (t2) does not).
+ * The TrailSocial clan outfit. Wearing every piece multiplies Bankstanding XP by {@link #XP_MULTIPLIER};
+ * what is in any other slot (boots, gloves, ammo, ring...) does not matter. Ids are the OSRS item ids,
+ * checked against the OSRS Wiki, and only the exact items named here count (for example a Twisted
+ * coat (t2) does not).
  */
 final class TrailSocialOutfit
 {
+	/**
+	 * Bankstanding XP gain while wearing the full outfit. The leaderboard server caps xp per hour
+	 * (MAX_XP_PER_HOUR in bankstanding.js) with slack above 300 * this, so raise that too if this goes up.
+	 */
+	static final int XP_MULTIPLIER = 5;
+
+
 	static final int TOP_HAT_AND_MONOCLE = 12434;
 	static final int TRAILBLAZER_CANE = 25013;
 	static final int BRIEFCASE = 12335;
