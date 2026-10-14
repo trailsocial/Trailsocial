@@ -177,7 +177,7 @@ class BankstandingXPPanel extends PluginPanel
 		hintPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 		JLabel hint = new JLabel(wrap("Stand within " + bankRadius + " tiles of a bank and don't move for "
 			+ idleThresholdSeconds + "s to start earning Bankstanding XP. In the Grand Exchange "
-			+ "you can wander between booths and still earn it. Every xp drop you get in any other skill "
+			+ "you can wander between booths and still earn it. Every non-combat xp drop you get "
 			+ "costs you Bankstanding XP. Wearing the full TrailSocial outfit gives you 5x the XP."));
 		hint.setFont(FontManager.getRunescapeSmallFont());
 		hint.setForeground(Color.GRAY);

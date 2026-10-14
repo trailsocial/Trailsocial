@@ -873,7 +873,7 @@ public class BankstandingXPPlugin extends Plugin
 		}
 	}
 
-	// Doing anything that earns real xp costs Bankstanding xp per xp drop (see XpDropTracker.penaltyFor).
+	// Skilling costs Bankstanding xp per xp drop; combat xp does not (see XpDropTracker.penaltyFor).
 	@Subscribe
 	public void onStatChanged(StatChanged event)
 	{
@@ -882,7 +882,13 @@ public class BankstandingXPPlugin extends Plugin
 			return;
 		}
 
-		double lost = Math.min(XpDropTracker.penaltyFor(event.getSkill()), xp);
+		int penalty = XpDropTracker.penaltyFor(event.getSkill());
+		if (penalty <= 0)
+		{
+			return; // combat xp is free
+		}
+
+		double lost = Math.min(penalty, xp);
 		xp -= lost;
 		lastWholeXp = (long) Math.floor(xp);
 		// The popup only ever shows the standard cost per drop; agility's bigger cost is deliberately not shown in the UI.

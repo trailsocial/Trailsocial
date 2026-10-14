@@ -18,10 +18,33 @@ final class XpDropTracker
 	private final Map<Skill, Integer> lastXp = new EnumMap<>(Skill.class);
 	private boolean ready;
 
-	/** Bankstanding xp lost for one xp drop in the given skill: agility hurts the most. */
+	/** Bankstanding xp lost for one xp drop in the given skill: nothing for combat, agility hurts the most. */
 	static int penaltyFor(Skill skill)
 	{
+		if (isCombat(skill))
+		{
+			return 0;
+		}
 		return skill == Skill.AGILITY ? AGILITY_PENALTY_PER_DROP : PENALTY_PER_DROP;
+	}
+
+	/** Fighting never costs Bankstanding xp: the combat skills, plus slayer, whose xp drops with every task kill. */
+	static boolean isCombat(Skill skill)
+	{
+		switch (skill)
+		{
+			case ATTACK:
+			case STRENGTH:
+			case DEFENCE:
+			case RANGED:
+			case MAGIC:
+			case HITPOINTS:
+			case PRAYER:
+			case SLAYER:
+				return true;
+			default:
+				return false;
+		}
 	}
 
 	boolean isReady()

@@ -62,16 +62,31 @@ public class XpDropTrackerTest
 	}
 
 	@Test
-	public void agilityCostsFiveAndEverythingElseCostsOne()
+	public void combatIsFreeAgilityCostsFiveAndEverythingElseCostsOne()
 	{
 		assertEquals(5, XpDropTracker.penaltyFor(Skill.AGILITY));
+		Skill[] combat = {Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE, Skill.RANGED, Skill.MAGIC, Skill.HITPOINTS, Skill.PRAYER, Skill.SLAYER};
+		for (Skill skill : combat)
+		{
+			assertEquals(skill + " is combat and should be free", 0, XpDropTracker.penaltyFor(skill));
+		}
 		for (Skill skill : Skill.values())
 		{
-			if (skill != Skill.AGILITY)
+			if (skill != Skill.AGILITY && !java.util.Arrays.asList(combat).contains(skill))
 			{
 				assertEquals(skill + " should cost 1", 1, XpDropTracker.penaltyFor(skill));
 			}
 		}
+	}
+
+	@Test
+	public void aCombatDropStillMovesTheBaseline()
+	{
+		Map<Skill, Integer> xp = new HashMap<>();
+		xp.put(Skill.STRENGTH, 100);
+		XpDropTracker t = readyTracker(xp);
+		assertTrue("still a real drop, it just costs nothing", t.isDrop(Skill.STRENGTH, 140));
+		assertFalse(t.isDrop(Skill.STRENGTH, 140));
 	}
 
 	@Test

@@ -4,8 +4,8 @@ A RuneLite plugin for the most optimal gaming gamers
 
 ## What it has
 
-- Bankstanding XP - a joke skill for idling near a bank. Every xp drop you get in any real skill costs you
-  Bankstanding XP, so actually playing the game holds you back. Wearing the full TrailSocial outfit gives you
+- Bankstanding XP - a joke skill for idling near a bank. Every xp drop you get in a non-combat skill costs you
+  Bankstanding XP (fighting is free), so skilling holds you back. Wearing the full TrailSocial outfit gives you
   5x the Bankstanding XP: Top hat & monocle, Trailblazer cane, Briefcase, Twisted coat (t1), Twisted
   trousers (t1), Clue hunter cloak and Cat training medal (any other slot can hold anything)
 - Clan Hall stats - balloons burst, gilded chains picked up, wealth looted, time spent sitting
