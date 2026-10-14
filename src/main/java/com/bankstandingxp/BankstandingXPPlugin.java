@@ -222,6 +222,7 @@ public class BankstandingXPPlugin extends Plugin
 
 	private boolean inRaid = false;
 	private boolean fightingBoss = false;
+	private final BossEngagement bossEngagement = new BossEngagement();
 	private long bossDeaths = 0;
 	private long gnomesKilled = 0;
 	private double caneHeldSeconds = 0;
@@ -259,6 +260,7 @@ public class BankstandingXPPlugin extends Plugin
 		lastInventoryCounts.clear();
 		inRaid = false;
 		fightingBoss = false;
+		bossEngagement.reset();
 		splashShownThisSession = false;
 		hasUnseenEvents = false;
 		recentEvents = List.of();
@@ -624,6 +626,7 @@ public class BankstandingXPPlugin extends Plugin
 			}
 			rsn = null;
 			xpDrops.reset();
+			bossEngagement.reset();
 			pendingPenalty = 0;
 			currentAccountHash = -1;
 			idleTicks = 0;
@@ -691,6 +694,7 @@ public class BankstandingXPPlugin extends Plugin
 		boolean inToa = BossAndRaidData.TOA_REGION_IDS.contains(instanceRegionId);
 		inRaid = inCox || inTob || inToa;
 		fightingBoss = isFightingBoss(player);
+		bossEngagement.tick(fightingBoss || isBossTargeting(player));
 
 		ItemContainer equipment = client.getItemContainer(InventoryID.WORN);
 		boolean fullOutfit = equipment != null && TrailSocialOutfit.isComplete(equipment::contains);
@@ -857,7 +861,7 @@ public class BankstandingXPPlugin extends Plugin
 
 		if (actor == player)
 		{
-			if (inRaid || fightingBoss)
+			if (inRaid || fightingBoss || bossEngagement.recentlyEngaged())
 			{
 				bossDeaths++;
 				saveXp();
@@ -882,14 +886,31 @@ public class BankstandingXPPlugin extends Plugin
 	private boolean isFightingBoss(Player player)
 	{
 		Actor target = player.getInteracting();
-		if (!(target instanceof NPC))
-		{
-			return false;
-		}
+		return target instanceof NPC && isBoss((NPC) target);
+	}
 
-		NPCComposition comp = ((NPC) target).getComposition();
-		String name = comp != null ? comp.getName() : null;
-		return name != null && BossAndRaidData.BOSS_NAMES.contains(name.toLowerCase());
+	// A boss that has the player as its target counts as a fight even if the player is targeting a
+	// minion, or nothing, at that moment.
+	private boolean isBossTargeting(Player player)
+	{
+		for (NPC npc : client.getTopLevelWorldView().npcs())
+		{
+			if (npc != null && npc.getInteracting() == player && isBoss(npc))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean isBoss(NPC npc)
+	{
+		NPCComposition comp = npc.getTransformedComposition();
+		if (comp == null)
+		{
+			comp = npc.getComposition();
+		}
+		return comp != null && BossAndRaidData.isBossName(comp.getName());
 	}
 
 	private void announceLevelUp(int level)

@@ -1,5 +1,6 @@
 package com.bankstandingxp;
 
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -20,6 +21,11 @@ final class BossAndRaidData
 {
 	private BossAndRaidData()
 	{
+	}
+
+	static boolean isBossName(String npcName)
+	{
+		return npcName != null && BOSS_NAMES.contains(npcName.trim().toLowerCase(Locale.ROOT));
 	}
 
 	static final Set<Integer> TOB_REGION_IDS = Set.of(
