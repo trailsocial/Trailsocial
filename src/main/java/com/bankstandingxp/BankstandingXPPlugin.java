@@ -799,7 +799,7 @@ public class BankstandingXPPlugin extends Plugin
 		bossEngagement.tick(fightingBoss || isBossTargeting(player));
 
 		ItemContainer equipment = client.getItemContainer(InventoryID.WORN);
-		boolean fullOutfit = equipment != null && TrailSocialOutfit.isComplete(equipment::contains);
+		int xpMultiplier = equipment == null ? 1 : TrailSocialOutfit.xpMultiplier(equipment::contains);
 		if (equipment != null && equipment.contains(TRAILBLAZER_CANE_ITEM_ID))
 		{
 			caneHeldSeconds += SECONDS_PER_TICK;
@@ -839,7 +839,7 @@ public class BankstandingXPPlugin extends Plugin
 
 		int levelBefore = BankstandingXP.getLevelForXp((long) Math.floor(xp));
 
-		double xpGain = XP_PER_HOUR * (SECONDS_PER_TICK / 3600.0) * (fullOutfit ? TrailSocialOutfit.XP_MULTIPLIER : 1);
+		double xpGain = XP_PER_HOUR * (SECONDS_PER_TICK / 3600.0) * xpMultiplier;
 		xp = Math.min(BankstandingXP.MAX_XP, xp + xpGain);
 
 		long wholeXp = (long) Math.floor(xp);

@@ -85,6 +85,33 @@ public class TrailSocialOutfitTest
 	}
 
 	@Test
+	public void theOutfitOrTheRingGivesFiveTimesButNeverMore()
+	{
+		int ring = TrailSocialOutfit.RING_OF_VISIBILITY;
+		assertEquals(4657, ring);
+		assertEquals(1, TrailSocialOutfit.xpMultiplier(id -> false));
+		assertEquals(5, TrailSocialOutfit.xpMultiplier(wearing(TrailSocialOutfit.PIECES)::contains));
+		assertEquals("the ring alone", 5, TrailSocialOutfit.xpMultiplier(wearing(ring)::contains));
+		Set<Integer> both = wearing(TrailSocialOutfit.PIECES);
+		both.add(ring);
+		assertEquals("the ring does not stack with the outfit", 5, TrailSocialOutfit.xpMultiplier(both::contains));
+		Set<Integer> partial = wearing(TrailSocialOutfit.PIECES);
+		partial.remove(TrailSocialOutfit.BRIEFCASE);
+		assertEquals("a partial outfit gets nothing", 1, TrailSocialOutfit.xpMultiplier(partial::contains));
+		partial.add(ring);
+		assertEquals("a partial outfit plus the ring is still just 5x", 5, TrailSocialOutfit.xpMultiplier(partial::contains));
+	}
+
+	@Test
+	public void theRingIsNotPartOfTheOutfit()
+	{
+		for (int piece : TrailSocialOutfit.PIECES)
+		{
+			assertTrue(piece != TrailSocialOutfit.RING_OF_VISIBILITY);
+		}
+	}
+
+	@Test
 	public void theCaneMatchesTheOneTheHeldTimeTrackerUses()
 	{
 		assertEquals(25013, TrailSocialOutfit.TRAILBLAZER_CANE);

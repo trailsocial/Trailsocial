@@ -25,6 +25,9 @@ final class TrailSocialOutfit
 	static final int CLUE_HUNTER_CLOAK = 19697;
 	static final int CAT_TRAINING_MEDAL = 1575;
 
+	/** Ring of visibility. On its own it gives the same boost as the full outfit; the two do not stack. */
+	static final int RING_OF_VISIBILITY = 4657;
+
 	static final int[] PIECES = {
 		TOP_HAT_AND_MONOCLE,
 		TRAILBLAZER_CANE,
@@ -37,6 +40,12 @@ final class TrailSocialOutfit
 
 	private TrailSocialOutfit()
 	{
+	}
+
+	/** The Bankstanding XP multiplier for what is worn: 5x for the full outfit or the ring, never more. */
+	static int xpMultiplier(IntPredicate wearing)
+	{
+		return isComplete(wearing) || wearing.test(RING_OF_VISIBILITY) ? XP_MULTIPLIER : 1;
 	}
 
 	/** @param wearing whether an item id is currently equipped */
