@@ -19,7 +19,7 @@ public class BankstandingChatCommandsTest
 	@Test
 	public void everyStatHasItsOwnCommand()
 	{
-		String[] texts = {"!hours", "!gnomes", "!deaths", "!wealth", "!balloons", "!chains", "!sitting", "!cane", "!ge", "!geout"};
+		String[] texts = {"!hours", "!gnomes", "!deaths", "!wealth", "!balloons", "!chains", "!chair", "!cane", "!ge", "!geout"};
 		BankstandingChatCommands.Command[] expected = {
 			BankstandingChatCommands.Command.HOURS, BankstandingChatCommands.Command.GNOMES,
 			BankstandingChatCommands.Command.DEATHS, BankstandingChatCommands.Command.WEALTH,
@@ -32,7 +32,77 @@ public class BankstandingChatCommandsTest
 			assertEquals(expected[i], BankstandingChatCommands.parse(texts[i]));
 			assertEquals(expected[i], BankstandingChatCommands.parse("  " + texts[i].toUpperCase() + " "));
 		}
-		assertEquals("every command is covered above", texts.length + 1, BankstandingChatCommands.Command.values().length);
+		assertEquals("every command is covered, plus !lvl bankstanding and !events", texts.length + 2, BankstandingChatCommands.Command.values().length);
+	}
+
+	@Test
+	public void theEventsCommandAndTheRenamedSittingCommand()
+	{
+		assertEquals(BankstandingChatCommands.Command.EVENTS, BankstandingChatCommands.parse("!events"));
+		assertEquals(BankstandingChatCommands.Command.EVENTS, BankstandingChatCommands.parse(" !Events "));
+		assertNull("the game itself treats !sitting as an emote", BankstandingChatCommands.parse("!sitting"));
+		assertNull(BankstandingChatCommands.parse("!event"));
+	}
+
+	private static TrailSocialEvent event(String title, String date, String endDate)
+	{
+		TrailSocialEvent e = new TrailSocialEvent();
+		e.title = title;
+		e.date = date;
+		e.endDate = endDate;
+		return e;
+	}
+
+	private static final java.time.LocalDate TODAY = java.time.LocalDate.of(2026, 10, 19);
+
+	@Test
+	public void eventsShowTitleAndMonthDayInDateOrder()
+	{
+		java.util.List<TrailSocialEvent> events = java.util.Arrays.asList(
+			event("HALLOWEEN PARTY", "2026-10-31", ""),
+			event("PVM NIGHT", "2026-10-25", null));
+		assertEquals("Upcoming events: PVM NIGHT (10/25), HALLOWEEN PARTY (10/31)",
+			BankstandingChatCommands.formatEvents(events, TODAY));
+	}
+
+	@Test
+	public void eventsThatHaveEndedAreLeftOut()
+	{
+		java.util.List<TrailSocialEvent> events = java.util.Arrays.asList(
+			event("SEPTEMBER ART COMPETITION", "2026-09-01", "2026-09-30"),
+			event("YESTERDAY", "2026-10-18", ""),
+			event("TODAY", "2026-10-19", ""));
+		assertEquals("Upcoming events: TODAY (10/19)", BankstandingChatCommands.formatEvents(events, TODAY));
+		assertEquals("No upcoming TrailSocial events", BankstandingChatCommands.formatEvents(events.subList(0, 2), TODAY));
+		assertEquals("No upcoming TrailSocial events", BankstandingChatCommands.formatEvents(java.util.Collections.emptyList(), TODAY));
+	}
+
+	@Test
+	public void aRunningMultiDayEventStaysAndShowsItsRange()
+	{
+		java.util.List<TrailSocialEvent> events = java.util.Arrays.asList(event("OCTOBER ART COMPETITION", "2026-10-01", "2026-10-31"));
+		assertEquals("Upcoming events: OCTOBER ART COMPETITION (10/01-10/31)", BankstandingChatCommands.formatEvents(events, TODAY));
+	}
+
+	@Test
+	public void onlyTheNextThreeAreListedAndUndatedOnesGoLast()
+	{
+		java.util.List<TrailSocialEvent> events = java.util.Arrays.asList(
+			event("UNDATED", "", ""),
+			event("D", "2026-12-01", ""),
+			event("A", "2026-10-20", ""),
+			event("C", "2026-11-05", ""),
+			event("B", "2026-10-22", ""));
+		assertEquals("Upcoming events: A (10/20), B (10/22), C (11/05) +2 more",
+			BankstandingChatCommands.formatEvents(events, TODAY));
+	}
+
+	@Test
+	public void brokenEventDataNeverThrows()
+	{
+		java.util.List<TrailSocialEvent> events = java.util.Arrays.asList(
+			null, event(null, "2026-10-25", ""), event("  ", "2026-10-25", ""), event("BAD DATE", "soon", "later"));
+		assertEquals("Upcoming events: BAD DATE", BankstandingChatCommands.formatEvents(events, TODAY));
 	}
 
 	@Test
@@ -63,7 +133,7 @@ public class BankstandingChatCommandsTest
 		assertEquals("5.0", BankstandingChatCommands.Command.GE_OUT.value(s));
 		for (BankstandingChatCommands.Command command : BankstandingChatCommands.Command.values())
 		{
-			if (command != BankstandingChatCommands.Command.LEVEL)
+			if (command != BankstandingChatCommands.Command.LEVEL && command != BankstandingChatCommands.Command.EVENTS)
 			{
 				assertTrue(command + " needs a label", command.label != null && !command.label.isEmpty());
 			}

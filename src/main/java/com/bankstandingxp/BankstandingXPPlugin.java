@@ -9,6 +9,7 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -897,7 +898,7 @@ public class BankstandingXPPlugin extends Plugin
 		pendingPenalty += Math.min(Math.round(lost), XpDropTracker.PENALTY_PER_DROP);
 	}
 
-	// !lvl bankstanding, !hours and !gnomes: replace the command with the sender's stats, on this player's screen only.
+	// !lvl bankstanding, !hours, !events and the other stat commands: replace the command with the answer, on this player's screen only.
 	@Subscribe
 	public void onChatMessage(ChatMessage event)
 	{
@@ -906,6 +907,16 @@ public class BankstandingXPPlugin extends Plugin
 			return;
 		}
 		BankstandingChatCommands.Command command = BankstandingChatCommands.parse(Text.removeTags(event.getMessage()));
+		if (command == BankstandingChatCommands.Command.EVENTS)
+		{
+			// Not about any player, so no leaderboard lookup: answer from the events already downloaded.
+			event.getMessageNode().setRuneLiteFormatMessage(new ChatMessageBuilder()
+				.append(ChatColorType.NORMAL)
+				.append(BankstandingChatCommands.formatEvents(recentEvents, LocalDate.now()))
+				.build());
+			client.refreshChat();
+			return;
+		}
 		if (command == null)
 		{
 			return;

@@ -48,10 +48,11 @@ Type any of these in public, friends or clan chat (or a private message):
 - `!wealth` - Clan Hall wealth picked up
 - `!balloons` - Clan Hall balloons burst
 - `!chains` - gilded chains picked up
-- `!sitting` - hours spent sitting
+- `!chair` - hours spent sitting
 - `!cane` - hours the Trailblazer cane has been held
 - `!ge` - hours in the Grand Exchange
 - `!geout` - hours outside the Grand Exchange
+- `!events` - the next few TrailSocial events and their dates (the same events the sidebar shows)
 
 Anyone running the plugin who sees the command has it replaced, on their own screen, with the sender's stats (just
 like RuneLite's built-in `!lvl attack`), so people without the plugin see the plain text. Your own message uses your
