@@ -205,6 +205,12 @@ public class BankstandingXPPlugin extends Plugin
 
 	private LeaderboardSync leaderboard;
 	private ScheduledFuture<?> leaderboardTask;
+	// Clan level-up messages: watches the public board (downloaded every minute while in the clan chat).
+	private ScheduledFuture<?> levelUpTask;
+	private final LevelUpWatcher levelUps = new LevelUpWatcher();
+	private static final String CLAN_NAME = "TrailSocial";
+	private static final int LEVEL_UP_POLL_INITIAL_DELAY_SECONDS = 30;
+	private static final int LEVEL_UP_POLL_PERIOD_SECONDS = 60;
 	// In-game name of the logged-in account, captured on the client thread; null while logged out.
 	private volatile String rsn;
 	private volatile long leaderboardPausedUntilMs = 0;
@@ -331,6 +337,9 @@ public class BankstandingXPPlugin extends Plugin
 		showInitialLeaderboardStatus();
 		leaderboardTask = executor.scheduleWithFixedDelay(this::syncLeaderboard,
 			LEADERBOARD_INITIAL_DELAY_SECONDS, LEADERBOARD_PERIOD_SECONDS, TimeUnit.SECONDS);
+		levelUps.reset();
+		levelUpTask = executor.scheduleWithFixedDelay(() -> clientThread.invoke(this::checkLevelUps),
+			LEVEL_UP_POLL_INITIAL_DELAY_SECONDS, LEVEL_UP_POLL_PERIOD_SECONDS, TimeUnit.SECONDS);
 	}
 
 	@Override
@@ -347,6 +356,12 @@ public class BankstandingXPPlugin extends Plugin
 			leaderboardTask.cancel(false);
 			leaderboardTask = null;
 		}
+		if (levelUpTask != null)
+		{
+			levelUpTask.cancel(false);
+			levelUpTask = null;
+		}
+		levelUps.reset();
 		leaderboard = null;
 		rsn = null;
 		boardCache = null;
@@ -982,9 +997,59 @@ public class BankstandingXPPlugin extends Plugin
 
 		boardCache = fetched;
 		boardFetchedAtMs = System.currentTimeMillis();
+		announceLevelUps(fetched);
 		for (PendingLookup p : waiting)
 		{
 			showCommand(p.node, p.command, statsFor(fetched, p.sender), p.sender);
+		}
+	}
+
+	// Whether the player is in the TrailSocial clan's own chat channel (not just a guest in someone else's).
+	private boolean inTrailSocialClan()
+	{
+		net.runelite.api.clan.ClanChannel channel = client.getClanChannel();
+		return channel != null && channel.getName() != null
+			&& channel.getName().replaceAll("[^A-Za-z0-9]", "").equalsIgnoreCase(CLAN_NAME);
+	}
+
+	// Once a minute, client thread: make sure the board is fresh so announceLevelUps sees any new level.
+	private void checkLevelUps()
+	{
+		LeaderboardSync sync = leaderboard;
+		if (sync == null)
+		{
+			return;
+		}
+		if (!config.clanLevelUps() || client.getGameState() != GameState.LOGGED_IN || !inTrailSocialClan())
+		{
+			levelUps.reset(); // so coming back later only re-records levels instead of announcing a backlog
+			return;
+		}
+		if (boardCache != null && System.currentTimeMillis() - boardFetchedAtMs < BOARD_TTL_MS)
+		{
+			announceLevelUps(boardCache);
+		}
+		else if (!boardFetching)
+		{
+			boardFetching = true;
+			sync.fetchBoard(fetched -> clientThread.invoke(() -> onBoardFetched(fetched)));
+		}
+	}
+
+	// Shows "<name> has reached Bankstanding level N." as a clan message, but only to someone in the TrailSocial
+	// clan chat, and only about players on the leaderboard (which only holds clan members, checked by the site).
+	private void announceLevelUps(LeaderboardSync.Board board)
+	{
+		if (!config.clanLevelUps() || client.getGameState() != GameState.LOGGED_IN || !inTrailSocialClan())
+		{
+			levelUps.reset();
+			return;
+		}
+		String channel = client.getClanChannel().getName();
+		for (LevelUpWatcher.LevelUp up : levelUps.update(board, rsn))
+		{
+			client.addChatMessage(ChatMessageType.CLAN_MESSAGE, "",
+				up.name + " has reached Bankstanding level " + up.level + ".", channel);
 		}
 	}
 

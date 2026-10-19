@@ -68,6 +68,18 @@ public interface BankstandingXPConfig extends Config
 		return true;
 	}
 
+	@ConfigItem(
+		keyName = "clanLevelUps",
+		name = "Clan level-up messages",
+		description = "While you are in the TrailSocial clan chat, show a clan message in your chat whenever another "
+			+ "clan member reaches a new Bankstanding level. Uses the same public leaderboard download as the chat commands.",
+		position = 9
+	)
+	default boolean clanLevelUps()
+	{
+		return true;
+	}
+
 	@ConfigSection(
 		name = "Leaderboard",
 		description = "Sync your Bankstanding XP and stats to the TrailSocial leaderboard",

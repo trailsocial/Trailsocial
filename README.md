@@ -60,6 +60,14 @@ live numbers; for other players the plugin reads the public leaderboard, which i
 and searches by name locally, so no player names are sent anywhere. Players who haven't synced show up as not on
 the leaderboard. Turn this off with the **Chat commands** setting.
 
+## Clan level-up messages
+
+While you are in the TrailSocial clan chat, the plugin shows a clan message in your own chat when another clan member
+reaches a new Bankstanding level, for example "Noble Mobile has reached Bankstanding level 30." It works from the same
+public leaderboard download as the chat commands (about once a minute, nothing sent), only about players on the
+leaderboard, and only for people who are in the TrailSocial clan chat. Nothing is sent into the game's clan chat: each
+player's plugin shows the message locally. Turn it off with the **Clan level-up messages** setting.
+
 ## Project layout
 
 Standard RuneLite plugin template

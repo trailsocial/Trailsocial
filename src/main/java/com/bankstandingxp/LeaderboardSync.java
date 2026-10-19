@@ -290,6 +290,12 @@ final class LeaderboardSync
 			this.total = total;
 		}
 
+		/** Every player on the board. */
+		java.util.Collection<BoardRow> rows()
+		{
+			return rows.values();
+		}
+
 		/** The row for a player, whatever the capitalisation or the kind of space/underscore in the name. */
 		BoardRow find(String playerName)
 		{
