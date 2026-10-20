@@ -86,6 +86,10 @@ final class BossAndRaidData
 		"tree spirit", "treus dayth", "tumeken's warden", "tzkal-zuk", "tztok-jad", "ulfric",
 		"vanguard", "vardorvis", "vasa nistirio", "venenatis", "verac the defiled",
 		"verzik vitur", "vespula", "vet'ion", "vorkath", "the whisperer", "white golem",
-		"wintertodt", "wrathmaw", "xamphur", "xarpus", "yama", "zalcano", "zebak", "zulrah"
+		"wintertodt", "wrathmaw", "xamphur", "xarpus", "yama", "zalcano", "zebak", "zulrah",
+		// The Fractured Archive (Raids 4). Its map regions aren't known yet, so deaths there count through the
+		// bosses the player is fighting, like other boss deaths, until region ids can be added.
+		"archive guardian", "ezekiel", "bork", "bork and the smorks", "moia", "dreadnoth the jellied", "dreadnoth",
+		"xarth", "dagon'hai elder", "ocellus"
 	);
 }

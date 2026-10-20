@@ -26,6 +26,15 @@ public class BossAndRaidDataTest
 	}
 
 	@Test
+	public void theFracturedArchiveBossesAreRecognised()
+	{
+		for (String name : new String[] {"Archive Guardian", "Ezekiel", "Moia", "Dreadnoth the Jellied", "Xarth", "Dagon'hai Elder", "Ocellus"})
+		{
+			assertTrue(name, BossAndRaidData.isBossName(name));
+		}
+	}
+
+	@Test
 	public void ordinaryMonstersAndNothingAreNotBosses()
 	{
 		assertFalse(BossAndRaidData.isBossName("Gnome"));
