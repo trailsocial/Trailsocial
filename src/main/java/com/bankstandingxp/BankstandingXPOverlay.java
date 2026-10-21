@@ -42,33 +42,65 @@ public class BankstandingXPOverlay extends OverlayPanel
 			.color(Color.ORANGE)
 			.build());
 
-		panelComponent.getChildren().add(LineComponent.builder()
-			.left("Level:")
-			.right(String.valueOf(level))
-			.build());
-
-		panelComponent.getChildren().add(LineComponent.builder()
-			.left("Next level:")
-			.right(level >= BankstandingXP.MAX_LEVEL ? "-" : String.format("%,d xp", xpToNext))
-			.build());
-
-		panelComponent.getChildren().add(LineComponent.builder()
-			.left("Total XP:")
-			.right(String.format("%,d", xp))
-			.build());
-
-		panelComponent.getChildren().add(LineComponent.builder()
-			.left("Status:")
-			.right(plugin.getStatus().getLabel())
-			.rightColor(plugin.getStatus().getColor())
-			.build());
-
-		double progress = BankstandingXP.getProgressToNextLevel(xp);
-		ProgressBarComponent progressBar = new ProgressBarComponent();
-		progressBar.setValue(progress * 100);
-		progressBar.setBackgroundColor(Color.DARK_GRAY);
-		progressBar.setForegroundColor(Color.ORANGE);
-		panelComponent.getChildren().add(progressBar);
+		int lines = 0;
+		if (config.bsLevel())
+		{
+			panelComponent.getChildren().add(LineComponent.builder().left("Level:").right(String.valueOf(level)).build());
+			lines++;
+		}
+		if (config.bsNextLevel())
+		{
+			panelComponent.getChildren().add(LineComponent.builder()
+				.left("Next level:")
+				.right(level >= BankstandingXP.MAX_LEVEL ? "-" : String.format("%,d xp", xpToNext))
+				.build());
+			lines++;
+		}
+		if (config.bsTotalXp())
+		{
+			panelComponent.getChildren().add(LineComponent.builder().left("Total XP:").right(String.format("%,d", xp)).build());
+			lines++;
+		}
+		if (config.bsStatus())
+		{
+			panelComponent.getChildren().add(LineComponent.builder()
+				.left("Status:")
+				.right(plugin.getStatus().getLabel())
+				.rightColor(plugin.getStatus().getColor())
+				.build());
+			lines++;
+		}
+		if (config.bsHours())
+		{
+			panelComponent.getChildren().add(LineComponent.builder()
+				.left("Time spent:").right(StatFormat.duration(plugin.getBankstandingSeconds())).build());
+			lines++;
+		}
+		if (config.bsGeIn())
+		{
+			panelComponent.getChildren().add(LineComponent.builder()
+				.left("Time in GE:").right(StatFormat.duration(plugin.getSecondsInGe())).build());
+			lines++;
+		}
+		if (config.bsGeOut())
+		{
+			panelComponent.getChildren().add(LineComponent.builder()
+				.left("Time outside GE:").right(StatFormat.duration(plugin.getSecondsOutsideGe())).build());
+			lines++;
+		}
+		if (config.bsProgressBar())
+		{
+			ProgressBarComponent progressBar = new ProgressBarComponent();
+			progressBar.setValue(BankstandingXP.getProgressToNextLevel(xp) * 100);
+			progressBar.setBackgroundColor(Color.DARK_GRAY);
+			progressBar.setForegroundColor(Color.ORANGE);
+			panelComponent.getChildren().add(progressBar);
+			lines++;
+		}
+		if (lines == 0)
+		{
+			return null; // every line is switched off, so don't draw an empty box
+		}
 
 		return super.render(graphics);
 	}

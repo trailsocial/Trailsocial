@@ -16,11 +16,13 @@ import net.runelite.client.ui.overlay.components.TitleComponent;
 public class BossRaidStatsOverlay extends OverlayPanel
 {
 	private final BankstandingXPPlugin plugin;
+	private final BankstandingXPConfig config;
 
 	@Inject
-	private BossRaidStatsOverlay(BankstandingXPPlugin plugin)
+	private BossRaidStatsOverlay(BankstandingXPPlugin plugin, BankstandingXPConfig config)
 	{
 		this.plugin = plugin;
+		this.config = config;
 		setPosition(OverlayPosition.TOP_LEFT);
 		setPreferredSize(new Dimension(200, 0));
 	}
@@ -28,7 +30,7 @@ public class BossRaidStatsOverlay extends OverlayPanel
 	@Override
 	public Dimension render(Graphics2D graphics)
 	{
-		if (!plugin.isInRaid() && !plugin.isFightingBoss())
+		if (!config.showBossOverlay() || !config.showDeathsStat() || (!plugin.isInRaid() && !plugin.isFightingBoss()))
 		{
 			return null;
 		}

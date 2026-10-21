@@ -16,11 +16,13 @@ import net.runelite.client.ui.overlay.components.TitleComponent;
 public class ClanHallStatsOverlay extends OverlayPanel
 {
 	private final BankstandingXPPlugin plugin;
+	private final BankstandingXPConfig config;
 
 	@Inject
-	private ClanHallStatsOverlay(BankstandingXPPlugin plugin)
+	private ClanHallStatsOverlay(BankstandingXPPlugin plugin, BankstandingXPConfig config)
 	{
 		this.plugin = plugin;
+		this.config = config;
 		setPosition(OverlayPosition.TOP_LEFT);
 		setPreferredSize(new Dimension(200, 0));
 	}
@@ -28,7 +30,7 @@ public class ClanHallStatsOverlay extends OverlayPanel
 	@Override
 	public Dimension render(Graphics2D graphics)
 	{
-		if (!plugin.isInClanHall())
+		if (!config.showClanHallOverlay() || !plugin.isInClanHall())
 		{
 			return null;
 		}
@@ -39,38 +41,36 @@ public class ClanHallStatsOverlay extends OverlayPanel
 			.color(Color.CYAN)
 			.build());
 
-		panelComponent.getChildren().add(LineComponent.builder()
-			.left("Balloons burst:")
-			.right(String.format("%,d", plugin.getBalloonsPopped()))
-			.build());
-
-		panelComponent.getChildren().add(LineComponent.builder()
-			.left("Gilded chains:")
-			.right(String.format("%,d", plugin.getGildedChainsPickedUp()))
-			.build());
-
-		panelComponent.getChildren().add(LineComponent.builder()
-			.left("Time sitting:")
-			.right(formatDuration(plugin.getSecondsSpentSitting()))
-			.build());
+		int lines = 0;
+		if (config.chWealth())
+		{
+			panelComponent.getChildren().add(LineComponent.builder()
+				.left("Wealth:").right(String.format("%,d gp", plugin.getClanHallWealthPickedUp())).build());
+			lines++;
+		}
+		if (config.chBalloons())
+		{
+			panelComponent.getChildren().add(LineComponent.builder()
+				.left("Balloons burst:").right(String.format("%,d", plugin.getBalloonsPopped())).build());
+			lines++;
+		}
+		if (config.chChains())
+		{
+			panelComponent.getChildren().add(LineComponent.builder()
+				.left("Gilded chains:").right(String.format("%,d", plugin.getGildedChainsPickedUp())).build());
+			lines++;
+		}
+		if (config.chSitting())
+		{
+			panelComponent.getChildren().add(LineComponent.builder()
+				.left("Time sitting:").right(StatFormat.duration(plugin.getSecondsSpentSitting())).build());
+			lines++;
+		}
+		if (lines == 0)
+		{
+			return null;
+		}
 
 		return super.render(graphics);
-	}
-
-	private static String formatDuration(long totalSeconds)
-	{
-		long hours = totalSeconds / 3600;
-		long minutes = (totalSeconds % 3600) / 60;
-		long seconds = totalSeconds % 60;
-
-		if (hours > 0)
-		{
-			return String.format("%dh %02dm %02ds", hours, minutes, seconds);
-		}
-		if (minutes > 0)
-		{
-			return String.format("%dm %02ds", minutes, seconds);
-		}
-		return seconds + "s";
 	}
 }

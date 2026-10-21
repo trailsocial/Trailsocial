@@ -60,6 +60,14 @@ live numbers; for other players the plugin reads the public leaderboard, which i
 and searches by name locally, so no player names are sent anywhere. Players who haven't synced show up as not on
 the leaderboard. Turn this off with the **Chat commands** setting.
 
+## Choosing what the in-game boxes show
+
+Under **In-game stats** in the plugin settings, every line of the three in-game boxes has its own switch: the
+Bankstanding box (level, next level, total XP, status, progress bar, plus optional time spent and time in/outside the
+Grand Exchange), the Clan Hall box (balloons, gilded chains, time sitting, plus optional wealth) and the deaths box.
+Each box still only appears in its own situation (Bankstanding near a bank, the Clan Hall box inside the Clan Hall,
+deaths while bossing), and a box with every line switched off is not drawn.
+
 ## Clan level-up messages
 
 While you are in the TrailSocial clan chat, the plugin shows a clan message in your own chat when another clan member
