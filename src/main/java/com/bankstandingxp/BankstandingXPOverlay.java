@@ -27,11 +27,12 @@ public class BankstandingXPOverlay extends OverlayPanel
 	@Override
 	public Dimension render(Graphics2D graphics)
 	{
-		if (!config.showOverlay() || !plugin.isNearBank())
+		if (!config.showOverlay())
 		{
 			return null;
 		}
 
+		boolean near = plugin.isNearBank();
 		long xp = plugin.getXp();
 		int level = BankstandingXP.getLevelForXp(xp);
 		long xpToNext = BankstandingXP.getXpToNextLevel(xp);
@@ -43,12 +44,12 @@ public class BankstandingXPOverlay extends OverlayPanel
 			.build());
 
 		int lines = 0;
-		if (config.bsLevel())
+		if (config.bsLevel() && (near || config.bsLevelAlways()))
 		{
 			panelComponent.getChildren().add(LineComponent.builder().left("Level:").right(String.valueOf(level)).build());
 			lines++;
 		}
-		if (config.bsNextLevel())
+		if (config.bsNextLevel() && (near || config.bsNextLevelAlways()))
 		{
 			panelComponent.getChildren().add(LineComponent.builder()
 				.left("Next level:")
@@ -56,12 +57,12 @@ public class BankstandingXPOverlay extends OverlayPanel
 				.build());
 			lines++;
 		}
-		if (config.bsTotalXp())
+		if (config.bsTotalXp() && (near || config.bsTotalXpAlways()))
 		{
 			panelComponent.getChildren().add(LineComponent.builder().left("Total XP:").right(String.format("%,d", xp)).build());
 			lines++;
 		}
-		if (config.bsStatus())
+		if (config.bsStatus() && (near || config.bsStatusAlways()))
 		{
 			panelComponent.getChildren().add(LineComponent.builder()
 				.left("Status:")
@@ -70,25 +71,25 @@ public class BankstandingXPOverlay extends OverlayPanel
 				.build());
 			lines++;
 		}
-		if (config.bsHours())
+		if (config.bsHours() && (near || config.bsHoursAlways()))
 		{
 			panelComponent.getChildren().add(LineComponent.builder()
 				.left("Time spent:").right(StatFormat.duration(plugin.getBankstandingSeconds())).build());
 			lines++;
 		}
-		if (config.bsGeIn())
+		if (config.bsGeIn() && (near || config.bsGeInAlways()))
 		{
 			panelComponent.getChildren().add(LineComponent.builder()
 				.left("Time in GE:").right(StatFormat.duration(plugin.getSecondsInGe())).build());
 			lines++;
 		}
-		if (config.bsGeOut())
+		if (config.bsGeOut() && (near || config.bsGeOutAlways()))
 		{
 			panelComponent.getChildren().add(LineComponent.builder()
 				.left("Time outside GE:").right(StatFormat.duration(plugin.getSecondsOutsideGe())).build());
 			lines++;
 		}
-		if (config.bsProgressBar())
+		if (config.bsProgressBar() && (near || config.bsProgressBarAlways()))
 		{
 			ProgressBarComponent progressBar = new ProgressBarComponent();
 			progressBar.setValue(BankstandingXP.getProgressToNextLevel(xp) * 100);

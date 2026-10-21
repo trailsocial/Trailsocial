@@ -11,10 +11,19 @@ public interface BankstandingXPConfig extends Config
 {
 	String GROUP = "bankstandingxp";
 
+	@ConfigSection(
+		name = "Interface",
+		description = "What shows on your screen. The Bankstanding box normally appears near a bank, the Clan Hall box in "
+			+ "the Clan Hall and the deaths box while bossing; turn on \"always show\" under a stat to keep it up everywhere.",
+		position = 1
+	)
+	String interfaceSection = "interface";
+
 	@ConfigItem(
 		keyName = "showOverlay",
 		name = "Show overlay",
-		description = "Show the Bankstanding XP box overlay in-game",
+		description = "Show the Bankstanding XP box overlay in-game (near a bank, unless a stat below is set to always show)",
+		section = interfaceSection,
 		position = 1
 	)
 	default boolean showOverlay()
@@ -23,9 +32,34 @@ public interface BankstandingXPConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "showClanHallOverlay",
+		name = "Clan Hall overlay",
+		description = "Show the Clan Hall stats box (inside the Clan Hall, unless a stat below is set to always show)",
+		section = interfaceSection,
+		position = 2
+	)
+	default boolean showClanHallOverlay()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "showBossOverlay",
+		name = "Deaths overlay",
+		description = "Show the deaths box (while fighting a boss or in a raid, unless the stat below is set to always show)",
+		section = interfaceSection,
+		position = 3
+	)
+	default boolean showBossOverlay()
+	{
+		return true;
+	}
+
+	@ConfigItem(
 		keyName = "notifyLevelUp",
 		name = "Notify on level up",
 		description = "Show a game message and tray notification when your Bankstanding level increases",
+		section = interfaceSection,
 		position = 5
 	)
 	default boolean notifyLevelUp()
@@ -37,6 +71,7 @@ public interface BankstandingXPConfig extends Config
 		keyName = "showXpDrops",
 		name = "Show XP drops",
 		description = "Show a fake XP drop popup (like a real skill) whenever you earn Bankstanding XP",
+		section = interfaceSection,
 		position = 6
 	)
 	default boolean showXpDrops()
@@ -49,6 +84,7 @@ public interface BankstandingXPConfig extends Config
 		keyName = "dropSize",
 		name = "XP drop size",
 		description = "Size of the XP drop popup, as a percentage of normal (100 = normal size)",
+		section = interfaceSection,
 		position = 7
 	)
 	default int dropSize()
@@ -57,10 +93,322 @@ public interface BankstandingXPConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "bsLevel",
+		name = "Bankstanding: level",
+		description = "Show your Bankstanding level",
+		section = interfaceSection,
+		position = 20
+	)
+	default boolean bsLevel()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "bsLevelAlways",
+		name = "Bankstanding: level: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 21
+	)
+	default boolean bsLevelAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "bsNextLevel",
+		name = "Bankstanding: next level",
+		description = "Show the XP to your next Bankstanding level",
+		section = interfaceSection,
+		position = 22
+	)
+	default boolean bsNextLevel()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "bsNextLevelAlways",
+		name = "Bankstanding: next level: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 23
+	)
+	default boolean bsNextLevelAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "bsTotalXp",
+		name = "Bankstanding: total XP",
+		description = "Show your total Bankstanding XP",
+		section = interfaceSection,
+		position = 24
+	)
+	default boolean bsTotalXp()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "bsTotalXpAlways",
+		name = "Bankstanding: total XP: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 25
+	)
+	default boolean bsTotalXpAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "bsStatus",
+		name = "Bankstanding: status",
+		description = "Show whether you are currently bankstanding",
+		section = interfaceSection,
+		position = 26
+	)
+	default boolean bsStatus()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "bsStatusAlways",
+		name = "Bankstanding: status: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 27
+	)
+	default boolean bsStatusAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "bsProgressBar",
+		name = "Bankstanding: progress bar",
+		description = "Show the progress bar to the next level",
+		section = interfaceSection,
+		position = 28
+	)
+	default boolean bsProgressBar()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "bsProgressBarAlways",
+		name = "Bankstanding: progress bar: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 29
+	)
+	default boolean bsProgressBarAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "bsHours",
+		name = "Bankstanding: time spent",
+		description = "Show your total time spent bankstanding",
+		section = interfaceSection,
+		position = 30
+	)
+	default boolean bsHours()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "bsHoursAlways",
+		name = "Bankstanding: time spent: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 31
+	)
+	default boolean bsHoursAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "bsGeIn",
+		name = "Bankstanding: time in the GE",
+		description = "Show your total time spent in the Grand Exchange",
+		section = interfaceSection,
+		position = 32
+	)
+	default boolean bsGeIn()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "bsGeInAlways",
+		name = "Bankstanding: time in the GE: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 33
+	)
+	default boolean bsGeInAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "bsGeOut",
+		name = "Bankstanding: time outside the GE",
+		description = "Show your total time spent outside the Grand Exchange",
+		section = interfaceSection,
+		position = 34
+	)
+	default boolean bsGeOut()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "bsGeOutAlways",
+		name = "Bankstanding: time outside the GE: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 35
+	)
+	default boolean bsGeOutAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "chWealth",
+		name = "Clan Hall: wealth",
+		description = "Show Clan Hall wealth picked up",
+		section = interfaceSection,
+		position = 36
+	)
+	default boolean chWealth()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "chWealthAlways",
+		name = "Clan Hall: wealth: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 37
+	)
+	default boolean chWealthAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "chBalloons",
+		name = "Clan Hall: balloons",
+		description = "Show balloons burst",
+		section = interfaceSection,
+		position = 38
+	)
+	default boolean chBalloons()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "chBalloonsAlways",
+		name = "Clan Hall: balloons: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 39
+	)
+	default boolean chBalloonsAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "chChains",
+		name = "Clan Hall: gilded chains",
+		description = "Show gilded chains picked up",
+		section = interfaceSection,
+		position = 40
+	)
+	default boolean chChains()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "chChainsAlways",
+		name = "Clan Hall: gilded chains: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 41
+	)
+	default boolean chChainsAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "chSitting",
+		name = "Clan Hall: time sitting",
+		description = "Show time spent sitting",
+		section = interfaceSection,
+		position = 42
+	)
+	default boolean chSitting()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "chSittingAlways",
+		name = "Clan Hall: time sitting: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 43
+	)
+	default boolean chSittingAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "showDeathsStat",
+		name = "Deaths",
+		description = "Show your death count",
+		section = interfaceSection,
+		position = 44
+	)
+	default boolean showDeathsStat()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "showDeathsStatAlways",
+		name = "Deaths: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 45
+	)
+	default boolean showDeathsStatAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
 		keyName = "chatCommands",
 		name = "Chat commands",
-		description = "Replace !lvl bankstanding, !hours and !gnomes in chat with that player's Bankstanding stats. "
-			+ "Other players' stats are looked up on the public TrailSocial leaderboard.",
+		description = "Replace commands like !lvl bankstanding, !hours, !deaths and !events in chat with that player's Bankstanding "
+			+ "stats. Other players' stats are looked up on the public TrailSocial leaderboard.",
 		position = 8
 	)
 	default boolean chatCommands()
@@ -99,193 +447,5 @@ public interface BankstandingXPConfig extends Config
 	default String leaderboardCode()
 	{
 		return "";
-	}
-
-	@ConfigSection(
-		name = "In-game stats",
-		description = "Choose which stats the in-game boxes show. Each box still only appears in its own situation: "
-			+ "Bankstanding near a bank, the Clan Hall box in the Clan Hall, deaths while bossing.",
-		position = 12
-	)
-	String statsSection = "inGameStats";
-
-	@ConfigItem(
-		keyName = "showClanHallOverlay",
-		name = "Clan Hall overlay",
-		description = "Show the Clan Hall stats box while you are inside the Clan Hall",
-		section = statsSection,
-		position = 13
-	)
-	default boolean showClanHallOverlay()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "showBossOverlay",
-		name = "Deaths overlay",
-		description = "Show the deaths box while you are fighting a boss or inside a raid",
-		section = statsSection,
-		position = 14
-	)
-	default boolean showBossOverlay()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "bsLevel",
-		name = "Bankstanding: level",
-		description = "Show your Bankstanding level in the overlay (the overlay itself only shows near a bank)",
-		section = statsSection,
-		position = 15
-	)
-	default boolean bsLevel()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "bsNextLevel",
-		name = "Bankstanding: next level",
-		description = "Show the XP to your next Bankstanding level",
-		section = statsSection,
-		position = 16
-	)
-	default boolean bsNextLevel()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "bsTotalXp",
-		name = "Bankstanding: total XP",
-		description = "Show your total Bankstanding XP",
-		section = statsSection,
-		position = 17
-	)
-	default boolean bsTotalXp()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "bsStatus",
-		name = "Bankstanding: status",
-		description = "Show whether you are currently bankstanding",
-		section = statsSection,
-		position = 18
-	)
-	default boolean bsStatus()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "bsProgressBar",
-		name = "Bankstanding: progress bar",
-		description = "Show the progress bar to the next level",
-		section = statsSection,
-		position = 19
-	)
-	default boolean bsProgressBar()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "bsHours",
-		name = "Bankstanding: time spent",
-		description = "Show your total time spent bankstanding",
-		section = statsSection,
-		position = 20
-	)
-	default boolean bsHours()
-	{
-		return false;
-	}
-
-	@ConfigItem(
-		keyName = "bsGeIn",
-		name = "Bankstanding: time in the GE",
-		description = "Show your total time spent in the Grand Exchange",
-		section = statsSection,
-		position = 21
-	)
-	default boolean bsGeIn()
-	{
-		return false;
-	}
-
-	@ConfigItem(
-		keyName = "bsGeOut",
-		name = "Bankstanding: time outside the GE",
-		description = "Show your total time spent outside the Grand Exchange",
-		section = statsSection,
-		position = 22
-	)
-	default boolean bsGeOut()
-	{
-		return false;
-	}
-
-	@ConfigItem(
-		keyName = "chWealth",
-		name = "Clan Hall: wealth",
-		description = "Show Clan Hall wealth picked up in the Clan Hall box",
-		section = statsSection,
-		position = 23
-	)
-	default boolean chWealth()
-	{
-		return false;
-	}
-
-	@ConfigItem(
-		keyName = "chBalloons",
-		name = "Clan Hall: balloons",
-		description = "Show balloons burst in the Clan Hall box",
-		section = statsSection,
-		position = 24
-	)
-	default boolean chBalloons()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "chChains",
-		name = "Clan Hall: gilded chains",
-		description = "Show gilded chains picked up in the Clan Hall box",
-		section = statsSection,
-		position = 25
-	)
-	default boolean chChains()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "chSitting",
-		name = "Clan Hall: time sitting",
-		description = "Show time spent sitting in the Clan Hall box",
-		section = statsSection,
-		position = 26
-	)
-	default boolean chSitting()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "showDeathsStat",
-		name = "Deaths",
-		description = "Show your death count in the deaths box",
-		section = statsSection,
-		position = 27
-	)
-	default boolean showDeathsStat()
-	{
-		return true;
 	}
 }

@@ -26,6 +26,46 @@ public class BankstandingXPConfigTest
 	}
 
 	@Test
+	public void everyStatHasAnAlwaysShowSwitchThatStartsOffInTheInterfaceSection() throws Exception
+	{
+		int stats = 0;
+		for (Method method : BankstandingXPConfig.class.getDeclaredMethods())
+		{
+			ConfigItem item = method.getAnnotation(ConfigItem.class);
+			if (item == null || !item.keyName().endsWith("Always"))
+			{
+				continue;
+			}
+			stats++;
+			assertEquals("interface", item.section());
+			assertFalse(item.keyName() + " must start off so boxes keep their usual situation", (Boolean) method.invoke(config));
+			String statKey = item.keyName().substring(0, item.keyName().length() - "Always".length());
+			assertTrue(statKey + " should be a stat switch", BankstandingXPConfig.class.getMethod(statKey).getAnnotation(ConfigItem.class) != null);
+		}
+		assertEquals("one for each of the 13 stat lines", 13, stats);
+	}
+
+	@Test
+	public void everyInterfaceOptionLivesInTheInterfaceSection()
+	{
+		for (String key : new String[] {"showOverlay", "showClanHallOverlay", "showBossOverlay", "notifyLevelUp", "showXpDrops", "dropSize",
+			"bsLevel", "chBalloons", "showDeathsStat"})
+		{
+			boolean found = false;
+			for (Method method : BankstandingXPConfig.class.getDeclaredMethods())
+			{
+				ConfigItem item = method.getAnnotation(ConfigItem.class);
+				if (item != null && item.keyName().equals(key))
+				{
+					found = true;
+					assertEquals(key, "interface", item.section());
+				}
+			}
+			assertTrue(key + " exists", found);
+		}
+	}
+
+	@Test
 	public void theNewOptionalLinesStartHidden()
 	{
 		assertFalse(config.bsHours());

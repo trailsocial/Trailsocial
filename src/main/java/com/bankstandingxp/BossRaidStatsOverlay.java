@@ -30,7 +30,8 @@ public class BossRaidStatsOverlay extends OverlayPanel
 	@Override
 	public Dimension render(Graphics2D graphics)
 	{
-		if (!config.showBossOverlay() || !config.showDeathsStat() || (!plugin.isInRaid() && !plugin.isFightingBoss()))
+		if (!config.showBossOverlay() || !config.showDeathsStat()
+			|| (!plugin.isInRaid() && !plugin.isFightingBoss() && !config.showDeathsStatAlways()))
 		{
 			return null;
 		}

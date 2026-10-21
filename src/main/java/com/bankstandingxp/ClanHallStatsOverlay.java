@@ -30,11 +30,12 @@ public class ClanHallStatsOverlay extends OverlayPanel
 	@Override
 	public Dimension render(Graphics2D graphics)
 	{
-		if (!config.showClanHallOverlay() || !plugin.isInClanHall())
+		if (!config.showClanHallOverlay())
 		{
 			return null;
 		}
 
+		boolean inside = plugin.isInClanHall();
 		panelComponent.getChildren().clear();
 		panelComponent.getChildren().add(TitleComponent.builder()
 			.text("Clan Hall")
@@ -42,25 +43,25 @@ public class ClanHallStatsOverlay extends OverlayPanel
 			.build());
 
 		int lines = 0;
-		if (config.chWealth())
+		if (config.chWealth() && (inside || config.chWealthAlways()))
 		{
 			panelComponent.getChildren().add(LineComponent.builder()
 				.left("Wealth:").right(String.format("%,d gp", plugin.getClanHallWealthPickedUp())).build());
 			lines++;
 		}
-		if (config.chBalloons())
+		if (config.chBalloons() && (inside || config.chBalloonsAlways()))
 		{
 			panelComponent.getChildren().add(LineComponent.builder()
 				.left("Balloons burst:").right(String.format("%,d", plugin.getBalloonsPopped())).build());
 			lines++;
 		}
-		if (config.chChains())
+		if (config.chChains() && (inside || config.chChainsAlways()))
 		{
 			panelComponent.getChildren().add(LineComponent.builder()
 				.left("Gilded chains:").right(String.format("%,d", plugin.getGildedChainsPickedUp())).build());
 			lines++;
 		}
-		if (config.chSitting())
+		if (config.chSitting() && (inside || config.chSittingAlways()))
 		{
 			panelComponent.getChildren().add(LineComponent.builder()
 				.left("Time sitting:").right(StatFormat.duration(plugin.getSecondsSpentSitting())).build());

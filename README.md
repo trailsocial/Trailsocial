@@ -62,11 +62,12 @@ the leaderboard. Turn this off with the **Chat commands** setting.
 
 ## Choosing what the in-game boxes show
 
-Under **In-game stats** in the plugin settings, every line of the three in-game boxes has its own switch: the
-Bankstanding box (level, next level, total XP, status, progress bar, plus optional time spent and time in/outside the
-Grand Exchange), the Clan Hall box (balloons, gilded chains, time sitting, plus optional wealth) and the deaths box.
-Each box still only appears in its own situation (Bankstanding near a bank, the Clan Hall box inside the Clan Hall,
-deaths while bossing), and a box with every line switched off is not drawn.
+Everything that shows on screen is under **Interface** in the plugin settings. Every line of the three in-game boxes
+has its own switch: the Bankstanding box (level, next level, total XP, status, progress bar, plus optional time spent
+and time in/outside the Grand Exchange), the Clan Hall box (balloons, gilded chains, time sitting, plus optional
+wealth) and the deaths box. Each box normally only appears in its own situation (Bankstanding near a bank, the Clan
+Hall box inside the Clan Hall, deaths while bossing); the **always show** switch under a stat keeps that stat on
+screen everywhere. A box with every line switched off is not drawn.
 
 ## Clan level-up messages
 
