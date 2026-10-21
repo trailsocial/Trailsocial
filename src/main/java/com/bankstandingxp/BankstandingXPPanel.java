@@ -243,7 +243,7 @@ class BankstandingXPPanel extends PluginPanel
 		balloonsValue.setText("Balloons burst: " + String.format("%,d", balloonsPopped));
 		gildedChainsValue.setText("Gilded chains: " + String.format("%,d", gildedChainsPickedUp));
 		sittingTimeValue.setText("Time sitting: " + formatDuration(sittingSeconds));
-		bossDeathsValue.setText("Deaths bossing: " + String.format("%,d", bossDeaths));
+		bossDeathsValue.setText("Deaths: " + String.format("%,d", bossDeaths));
 		gnomesKilledValue.setText("Gnomes killed: " + String.format("%,d", gnomesKilled));
 		caneHeldValue.setText("Cane held for: " + formatDuration(caneHeldSeconds));
 		geTimeInValue.setText("Time in GE: " + formatDuration(secondsInGe));

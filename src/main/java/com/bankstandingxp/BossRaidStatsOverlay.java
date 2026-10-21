@@ -40,7 +40,7 @@ public class BossRaidStatsOverlay extends OverlayPanel
 			.build());
 
 		panelComponent.getChildren().add(LineComponent.builder()
-			.left("Deaths while bossing:")
+			.left("Deaths:")
 			.right(String.format("%,d", plugin.getBossDeaths()))
 			.build());
 

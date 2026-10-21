@@ -9,7 +9,7 @@ A RuneLite plugin for the most optimal gaming gamers
   5x the Bankstanding XP: Top hat & monocle, Trailblazer cane, Briefcase, Twisted coat (t1), Twisted
   trousers (t1), Clue hunter cloak and Cat training medal (any other slot can hold anything)
 - Clan Hall stats - balloons burst, gilded chains picked up, wealth looted, time spent sitting
-- Bossing/raid death counter (CoX, ToB, ToA, and real boss NPCs)
+- Death counter (every death, wherever it happens)
 - Gnome kill counter, Trailblazer cane held-time tracker
 - Time spent inside vs. outside the Grand Exchange
 - Optional leaderboard sync - rank your Bankstanding XP and stats against the clan on trailsocial.net
@@ -28,7 +28,7 @@ The plugin can send your Bankstanding XP and stats to the leaderboard at
 
 While a code is set, the plugin sends this to `https://trailsocial.net/.netlify/functions/bankstanding` about every
 5 minutes and when you log out: the link code, your in-game name, your Bankstanding XP, and the stats shown in the
-plugin's sidebar (bankstanding time, Clan Hall wealth/balloons/chains/sitting time, boss deaths, gnomes killed,
+plugin's sidebar (bankstanding time, Clan Hall wealth/balloons/chains/sitting time, deaths, gnomes killed,
 cane held time, time in and out of the Grand Exchange). It sends no account hash, no other game data, and no
 inventory, bank or chat contents. Clear the code to stop; you can also revoke it from your profile.
 
@@ -44,7 +44,7 @@ Type any of these in public, friends or clan chat (or a private message):
 - `!lvl bankstanding` - your Bankstanding level, XP and leaderboard rank
 - `!hours` - hours spent bankstanding
 - `!gnomes` - gnomes killed
-- `!deaths` - boss and raid deaths
+- `!deaths` - times you have died
 - `!wealth` - Clan Hall wealth picked up
 - `!balloons` - Clan Hall balloons burst
 - `!chains` - gilded chains picked up

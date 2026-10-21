@@ -1165,11 +1165,9 @@ public class BankstandingXPPlugin extends Plugin
 
 		if (actor == player)
 		{
-			if (inRaid || fightingBoss || bossEngagement.recentlyEngaged())
-			{
-				bossDeaths++;
-				saveXp();
-			}
+			// Every death counts, wherever it happens: working out whether it was "bossing" kept missing deaths.
+			bossDeaths++;
+			saveXp();
 			return;
 		}
 

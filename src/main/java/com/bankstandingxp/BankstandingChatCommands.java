@@ -22,8 +22,8 @@ final class BankstandingChatCommands
 		HOURS("!hours", "Hours bankstanding"),
 		/** !gnomes */
 		GNOMES("!gnomes", "Gnomes killed"),
-		/** !deaths: boss and raid deaths */
-		DEATHS("!deaths", "Boss deaths"),
+		/** !deaths: times died */
+		DEATHS("!deaths", "Deaths"),
 		/** !wealth: wealth picked up in the Clan Hall */
 		WEALTH("!wealth", "Clan Hall wealth"),
 		/** !balloons */
