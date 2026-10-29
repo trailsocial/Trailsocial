@@ -47,6 +47,13 @@ final class Distance
 		return distance + String.format(Locale.US, " (%,d tiles)", tiles);
 	}
 
+	/** Both units for the chat: 12,345 tiles -> "7.67 mi / 12.35 km (12,345 tiles)". */
+	static String formatBoth(long tiles)
+	{
+		return formatShort(tiles, DistanceUnit.MILES) + " / " + formatShort(tiles, DistanceUnit.KILOMETRES)
+			+ String.format(Locale.US, " (%,d tiles)", tiles);
+	}
+
 	/** Just the distance, for the narrow in-game box: 12,345 tiles in km -> "12.35 km". */
 	static String formatShort(long tiles, DistanceUnit unit)
 	{

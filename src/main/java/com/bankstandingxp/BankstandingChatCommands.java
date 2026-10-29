@@ -39,7 +39,9 @@ final class BankstandingChatCommands
 		/** !geout: hours outside the Grand Exchange */
 		GE_OUT("!geout", "Hours outside the GE"),
 		/** !events: the next TrailSocial events; about no player, so it never needs the leaderboard */
-		EVENTS("!events", null);
+		EVENTS("!events", null),
+		/** !walked: distance walked */
+		WALKED("!walked", "Distance walked");
 
 		final String text;
 		/** What is said before the number, or null for the commands that have their own layout. */
@@ -76,6 +78,8 @@ final class BankstandingChatCommands
 					return formatHours(stats.geSecondsIn);
 				case GE_OUT:
 					return formatHours(stats.geSecondsOut);
+				case WALKED:
+					return Distance.formatBoth(stats.tilesWalked);
 				default:
 					throw new IllegalStateException(this + " has no single value");
 			}

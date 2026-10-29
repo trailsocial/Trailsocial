@@ -58,9 +58,19 @@ final class LeaderboardSync
 		final long caneHeldSeconds;
 		final long geSecondsIn;
 		final long geSecondsOut;
+		final long tilesWalked;
 
+		/** Without the distance walked (tiles walked reads as 0). */
 		Snapshot(String name, long xp, long bankstandingSeconds, long clanHallWealth, long balloons, long gildedChains,
 			long sittingSeconds, long bossDeaths, long gnomesKilled, long caneHeldSeconds, long geSecondsIn, long geSecondsOut)
+		{
+			this(name, xp, bankstandingSeconds, clanHallWealth, balloons, gildedChains, sittingSeconds, bossDeaths,
+				gnomesKilled, caneHeldSeconds, geSecondsIn, geSecondsOut, 0);
+		}
+
+		Snapshot(String name, long xp, long bankstandingSeconds, long clanHallWealth, long balloons, long gildedChains,
+			long sittingSeconds, long bossDeaths, long gnomesKilled, long caneHeldSeconds, long geSecondsIn, long geSecondsOut,
+			long tilesWalked)
 		{
 			this.name = name;
 			this.xp = xp;
@@ -74,6 +84,7 @@ final class LeaderboardSync
 			this.caneHeldSeconds = caneHeldSeconds;
 			this.geSecondsIn = geSecondsIn;
 			this.geSecondsOut = geSecondsOut;
+			this.tilesWalked = tilesWalked;
 		}
 
 		/** Every field is the larger of the two, so restoring from the site can never lose local progress. */
@@ -90,7 +101,8 @@ final class LeaderboardSync
 				Math.max(gnomesKilled, saved.gnomesKilled),
 				Math.max(caneHeldSeconds, saved.caneHeldSeconds),
 				Math.max(geSecondsIn, saved.geSecondsIn),
-				Math.max(geSecondsOut, saved.geSecondsOut));
+				Math.max(geSecondsOut, saved.geSecondsOut),
+				Math.max(tilesWalked, saved.tilesWalked));
 		}
 
 		/** True if every field of this snapshot is already at least what {@code other} has. */
@@ -101,7 +113,7 @@ final class LeaderboardSync
 				&& gildedChains >= other.gildedChains && sittingSeconds >= other.sittingSeconds
 				&& bossDeaths >= other.bossDeaths && gnomesKilled >= other.gnomesKilled
 				&& caneHeldSeconds >= other.caneHeldSeconds && geSecondsIn >= other.geSecondsIn
-				&& geSecondsOut >= other.geSecondsOut;
+				&& geSecondsOut >= other.geSecondsOut && tilesWalked >= other.tilesWalked;
 		}
 
 		/** A brand-new account with nothing recorded yet is not worth a leaderboard row. */
@@ -109,7 +121,7 @@ final class LeaderboardSync
 		{
 			return xp > 0 || bankstandingSeconds > 0 || clanHallWealth > 0 || balloons > 0 || gildedChains > 0
 				|| sittingSeconds > 0 || bossDeaths > 0 || gnomesKilled > 0 || caneHeldSeconds > 0
-				|| geSecondsIn > 0 || geSecondsOut > 0;
+				|| geSecondsIn > 0 || geSecondsOut > 0 || tilesWalked > 0;
 		}
 	}
 
@@ -203,6 +215,7 @@ final class LeaderboardSync
 		stats.addProperty("caneHeldSeconds", s.caneHeldSeconds);
 		stats.addProperty("geSecondsIn", s.geSecondsIn);
 		stats.addProperty("geSecondsOut", s.geSecondsOut);
+		stats.addProperty("tilesWalked", s.tilesWalked);
 
 		JsonObject payload = new JsonObject();
 		payload.addProperty("v", PROTOCOL_VERSION);
@@ -351,7 +364,7 @@ final class LeaderboardSync
 					longOr(stats, "bankstandingSeconds"), longOr(stats, "clanHallWealth"), longOr(stats, "balloons"),
 					longOr(stats, "gildedChains"), longOr(stats, "sittingSeconds"), longOr(stats, "bossDeaths"),
 					longOr(stats, "gnomesKilled"), longOr(stats, "caneHeldSeconds"), longOr(stats, "geSecondsIn"),
-					longOr(stats, "geSecondsOut"))));
+					longOr(stats, "geSecondsOut"), longOr(stats, "tilesWalked"))));
 		}
 		return new Board(rows, rows.size());
 	}
@@ -453,7 +466,8 @@ final class LeaderboardSync
 			longOr(stats, "gnomesKilled"),
 			longOr(stats, "caneHeldSeconds"),
 			longOr(stats, "geSecondsIn"),
-			longOr(stats, "geSecondsOut"));
+			longOr(stats, "geSecondsOut"),
+			longOr(stats, "tilesWalked"));
 	}
 
 	/** A number from the site, never negative and never absurd; anything unreadable counts as 0. */

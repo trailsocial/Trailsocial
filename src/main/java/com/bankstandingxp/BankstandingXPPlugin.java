@@ -510,7 +510,8 @@ public class BankstandingXPPlugin extends Plugin
 			gnomesKilled,
 			(long) Math.floor(caneHeldSeconds),
 			(long) Math.floor(secondsInGe),
-			(long) Math.floor(secondsOutsideGe));
+			(long) Math.floor(secondsOutsideGe),
+			tilesWalked);
 	}
 
 	private void onLeaderboardResult(LeaderboardSync.Result result, String name)
@@ -580,6 +581,10 @@ public class BankstandingXPPlugin extends Plugin
 		if (merged.geSecondsOut > local.geSecondsOut)
 		{
 			secondsOutsideGe = merged.geSecondsOut;
+		}
+		if (merged.tilesWalked > local.tilesWalked)
+		{
+			tilesWalked = merged.tilesWalked;
 		}
 
 		saveXp();

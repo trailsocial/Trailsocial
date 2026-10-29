@@ -45,7 +45,8 @@ public class LeaderboardSyncTest
 		assertEquals(888L, stats.get("caneHeldSeconds").getAsLong());
 		assertEquals(999L, stats.get("geSecondsIn").getAsLong());
 		assertEquals(1010L, stats.get("geSecondsOut").getAsLong());
-		assertEquals("every stat the server knows about, and nothing else", 10, stats.size());
+		assertEquals(0L, stats.get("tilesWalked").getAsLong());
+		assertEquals("every stat the server knows about, and nothing else", 11, stats.size());
 	}
 
 	@Test
@@ -127,7 +128,7 @@ public class LeaderboardSyncTest
 
 	private static final String BEHIND_BODY = "{\"ok\":true,\"behind\":true,\"name\":\"Noble Mobile\",\"xp\":9000,\"level\":37,\"rank\":2,\"total\":5,"
 		+ "\"restore\":{\"xp\":9000,\"stats\":{\"bankstandingSeconds\":7000,\"clanHallWealth\":48200000,\"balloons\":40,\"gildedChains\":3,"
-		+ "\"sittingSeconds\":5400,\"bossDeaths\":17,\"gnomesKilled\":1320,\"caneHeldSeconds\":86400,\"geSecondsIn\":1000,\"geSecondsOut\":20000}}}";
+		+ "\"sittingSeconds\":5400,\"bossDeaths\":17,\"gnomesKilled\":1320,\"caneHeldSeconds\":86400,\"geSecondsIn\":1000,\"geSecondsOut\":20000,\"tilesWalked\":9876}}}";
 
 	@Test
 	public void aBehindReplyCarriesTheSavedRowToRestoreFrom()
@@ -149,6 +150,7 @@ public class LeaderboardSyncTest
 		assertEquals(86400L, s.caneHeldSeconds);
 		assertEquals(1000L, s.geSecondsIn);
 		assertEquals(20000L, s.geSecondsOut);
+		assertEquals(9876L, s.tilesWalked);
 		assertEquals("Leaderboard: restoring your XP from trailsocial.net", r.describe("Noble Mobile"));
 	}
 
@@ -205,9 +207,25 @@ public class LeaderboardSyncTest
 		assertFalse("one field behind is enough", a.covers(new LeaderboardSync.Snapshot("A", 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11)));
 	}
 
+	@Test
+	public void tilesWalkedIsSentMergedAndCountedAsProgress()
+	{
+		LeaderboardSync.Snapshot walked = new LeaderboardSync.Snapshot("A", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5000);
+		JsonObject stats = GSON.fromJson(LeaderboardSync.buildPayload("tsb_code", walked), JsonObject.class)
+			.getAsJsonObject("payload").getAsJsonObject("stats");
+		assertEquals(5000L, stats.get("tilesWalked").getAsLong());
+		assertTrue("walking alone makes a row worth keeping", walked.hasProgress());
+
+		LeaderboardSync.Snapshot fresh = new LeaderboardSync.Snapshot("A", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100);
+		assertEquals(5000L, fresh.mergedWith(walked).tilesWalked);
+		assertEquals("a restore never lowers it", 5000L, walked.mergedWith(fresh).tilesWalked);
+		assertFalse("one field behind is enough", fresh.covers(walked));
+		assertTrue(walked.covers(fresh));
+	}
+
 	private static final String BOARD_BODY = "{\"ok\":true,\"generatedAt\":1,\"mine\":[],\"entries\":["
 		+ "{\"rank\":1,\"key\":\"bulkies\",\"name\":\"Bulkies\",\"level\":43,\"xp\":54321,\"stats\":{\"bankstandingSeconds\":651852,\"gnomesKilled\":5432}},"
-		+ "{\"rank\":2,\"key\":\"noble_mobile\",\"name\":\"Noble Mobile\",\"level\":29,\"xp\":12345,\"stats\":{\"bankstandingSeconds\":148500,\"gnomesKilled\":1320,\"bossDeaths\":7,\"clanHallWealth\":21067424759,\"balloons\":11,\"gildedChains\":491,\"sittingSeconds\":2754,\"caneHeldSeconds\":756410,\"geSecondsIn\":359510,\"geSecondsOut\":15212}},"
+		+ "{\"rank\":2,\"key\":\"noble_mobile\",\"name\":\"Noble Mobile\",\"level\":29,\"xp\":12345,\"stats\":{\"bankstandingSeconds\":148500,\"gnomesKilled\":1320,\"bossDeaths\":7,\"clanHallWealth\":21067424759,\"balloons\":11,\"gildedChains\":491,\"sittingSeconds\":2754,\"caneHeldSeconds\":756410,\"geSecondsIn\":359510,\"geSecondsOut\":15212,\"tilesWalked\":123456}},"
 		+ "{\"rank\":3,\"key\":\"megh\",\"name\":\"Megh\",\"level\":17,\"xp\":3210}]}";
 
 	@Test
@@ -241,6 +259,7 @@ public class LeaderboardSyncTest
 		assertEquals(756_410L, row.stats.caneHeldSeconds);
 		assertEquals(359_510L, row.stats.geSecondsIn);
 		assertEquals(15_212L, row.stats.geSecondsOut);
+		assertEquals(123_456L, row.stats.tilesWalked);
 		assertEquals(12_345L, row.stats.xp);
 		assertTrue("underscore, case and nbsp all find the same player",
 			board.find("NOBLE_MOBILE") == row && board.find("noble mobile") == row);

@@ -19,13 +19,14 @@ public class BankstandingChatCommandsTest
 	@Test
 	public void everyStatHasItsOwnCommand()
 	{
-		String[] texts = {"!hours", "!gnomes", "!deaths", "!wealth", "!balloons", "!chains", "!chair", "!cane", "!ge", "!geout"};
+		String[] texts = {"!hours", "!gnomes", "!deaths", "!wealth", "!balloons", "!chains", "!chair", "!cane", "!ge", "!geout", "!walked"};
 		BankstandingChatCommands.Command[] expected = {
 			BankstandingChatCommands.Command.HOURS, BankstandingChatCommands.Command.GNOMES,
 			BankstandingChatCommands.Command.DEATHS, BankstandingChatCommands.Command.WEALTH,
 			BankstandingChatCommands.Command.BALLOONS, BankstandingChatCommands.Command.CHAINS,
 			BankstandingChatCommands.Command.SITTING, BankstandingChatCommands.Command.CANE,
 			BankstandingChatCommands.Command.GE, BankstandingChatCommands.Command.GE_OUT,
+			BankstandingChatCommands.Command.WALKED,
 		};
 		for (int i = 0; i < texts.length; i++)
 		{
@@ -120,7 +121,7 @@ public class BankstandingChatCommandsTest
 	{
 		// distinct value in every field so a command reading the wrong one is caught
 		LeaderboardSync.Snapshot s = new LeaderboardSync.Snapshot("A", 100,
-			3600 * 2, 21_067_424_759L, 11, 491, 1800, 7, 50, 3600 * 3, 3600 * 4, 3600 * 5);
+			3600 * 2, 21_067_424_759L, 11, 491, 1800, 7, 50, 3600 * 3, 3600 * 4, 3600 * 5, 12_345);
 		assertEquals("2.0", BankstandingChatCommands.Command.HOURS.value(s));
 		assertEquals("50", BankstandingChatCommands.Command.GNOMES.value(s));
 		assertEquals("7", BankstandingChatCommands.Command.DEATHS.value(s));
@@ -131,6 +132,7 @@ public class BankstandingChatCommandsTest
 		assertEquals("3.0", BankstandingChatCommands.Command.CANE.value(s));
 		assertEquals("4.0", BankstandingChatCommands.Command.GE.value(s));
 		assertEquals("5.0", BankstandingChatCommands.Command.GE_OUT.value(s));
+		assertEquals("7.67 mi / 12.35 km (12,345 tiles)", BankstandingChatCommands.Command.WALKED.value(s));
 		for (BankstandingChatCommands.Command command : BankstandingChatCommands.Command.values())
 		{
 			if (command != BankstandingChatCommands.Command.LEVEL && command != BankstandingChatCommands.Command.EVENTS)
