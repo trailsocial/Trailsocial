@@ -93,6 +93,54 @@ public interface BankstandingXPConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "showDistance",
+		name = "Distance walked",
+		description = "Show how far you have walked (counted in tiles, shown as miles or kilometres) in the sidebar",
+		section = interfaceSection,
+		position = 40
+	)
+	default boolean showDistance()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "distanceUnit",
+		name = "Distance unit",
+		description = "Show the distance walked in miles or kilometres",
+		section = interfaceSection,
+		position = 41
+	)
+	default DistanceUnit distanceUnit()
+	{
+		return DistanceUnit.MILES;
+	}
+
+	@ConfigItem(
+		keyName = "bsDistance",
+		name = "Bankstanding: distance walked",
+		description = "Show the distance you have walked in the Bankstanding box",
+		section = interfaceSection,
+		position = 42
+	)
+	default boolean bsDistance()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "bsDistanceAlways",
+		name = "Bankstanding: distance walked: always show",
+		description = "Keep this stat on screen all the time, not just in its usual situation",
+		section = interfaceSection,
+		position = 43
+	)
+	default boolean bsDistanceAlways()
+	{
+		return false;
+	}
+
+	@ConfigItem(
 		keyName = "bsLevel",
 		name = "Bankstanding: level",
 		description = "Show your Bankstanding level",

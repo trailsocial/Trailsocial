@@ -10,6 +10,9 @@ A RuneLite plugin for the most optimal gaming gamers
   trousers (t1), Clue hunter cloak and Cat training medal (any other slot can hold anything)
 - Clan Hall stats - balloons burst, gilded chains picked up, wealth looted, time spent sitting
 - Death counter (every death, wherever it happens)
+- Distance walked - counts every tile you walk or run (not teleports) and shows it as miles or kilometres, taking a
+  tile as one metre; switch it on or off and pick the unit under **Interface** in the settings (it can also show in
+  the Bankstanding box). Kept on your computer only, it isn't sent to the leaderboard
 - Gnome kill counter, Trailblazer cane held-time tracker
 - Time spent inside vs. outside the Grand Exchange
 - Optional leaderboard sync - rank your Bankstanding XP and stats against the clan on trailsocial.net

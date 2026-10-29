@@ -264,6 +264,10 @@ public class BankstandingXPPlugin extends Plugin
 	private long bossDeaths = 0;
 	private long gnomesKilled = 0;
 	private double caneHeldSeconds = 0;
+	private long tilesWalked = 0;
+	private boolean distanceDirty = false;
+	private int distanceTicks = 0;
+	private static final int DISTANCE_SAVE_TICKS = 50;
 
 	@Provides
 	BankstandingXPConfig provideConfig(ConfigManager configManager)
@@ -293,6 +297,8 @@ public class BankstandingXPPlugin extends Plugin
 		bankstandingSeconds = 0;
 		secondsInGe = 0;
 		secondsOutsideGe = 0;
+		tilesWalked = 0;
+		distanceDirty = false;
 		xpDrops.reset();
 		pendingPenalty = 0;
 		lastInventoryCounts.clear();
@@ -710,6 +716,11 @@ public class BankstandingXPPlugin extends Plugin
 			SwingUtilities.invokeLater(() -> panel.setOverlaySelected(config.showOverlay()));
 		}
 
+		if ("showDistance".equals(event.getKey()) || "distanceUnit".equals(event.getKey()))
+		{
+			refreshPanel();
+		}
+
 		if ("leaderboardCode".equals(event.getKey()))
 		{
 			leaderboardPausedUntilMs = 0;
@@ -786,7 +797,25 @@ public class BankstandingXPPlugin extends Plugin
 
 		WorldPoint location = player.getWorldLocation();
 		boolean moved = lastLocation == null || !lastLocation.equals(location);
+		if (lastLocation != null)
+		{
+			int walked = Distance.tilesBetween(lastLocation.getX(), lastLocation.getY(), lastLocation.getPlane(),
+				location.getX(), location.getY(), location.getPlane());
+			if (walked > 0)
+			{
+				tilesWalked += walked;
+				distanceDirty = true;
+			}
+		}
 		lastLocation = location;
+		// Walking earns no xp, so the xp-driven save never runs while you walk: save and redraw the total every ~30s.
+		if (distanceDirty && ++distanceTicks >= DISTANCE_SAVE_TICKS)
+		{
+			distanceTicks = 0;
+			distanceDirty = false;
+			saveXp();
+			refreshPanel();
+		}
 
 		LocalPoint localPoint = player.getLocalLocation();
 		int instanceRegionId = localPoint != null ? WorldPoint.fromLocalInstance(client, localPoint).getRegionID() : -1;
@@ -1252,7 +1281,11 @@ public class BankstandingXPPlugin extends Plugin
 		long displaySecondsInGe = (long) Math.floor(secondsInGe);
 		long displaySecondsOutsideGe = (long) Math.floor(secondsOutsideGe);
 		List<TrailSocialEvent> displayEvents = recentEvents;
+		long displayTiles = tilesWalked;
+		boolean displayDistance = config.showDistance();
+		DistanceUnit displayUnit = config.distanceUnit();
 		SwingUtilities.invokeLater(() -> {
+			panel.updateDistance(displayTiles, displayDistance, displayUnit);
 			panel.update(displayXp, displayStatus);
 			panel.updateStats(displayBankstandingSeconds, displayClanHallWealth, displayBalloonsPopped,
 				displayGildedChains, displaySittingSeconds, displayBossDeaths, displayGnomesKilled, displayCaneHeldSeconds,
@@ -1331,6 +1364,11 @@ public class BankstandingXPPlugin extends Plugin
 		return (long) Math.floor(caneHeldSeconds);
 	}
 
+	long getTilesWalked()
+	{
+		return tilesWalked;
+	}
+
 	long getSecondsInGe()
 	{
 		return (long) Math.floor(secondsInGe);
@@ -1376,6 +1414,8 @@ public class BankstandingXPPlugin extends Plugin
 		caneHeldSeconds = parseDoubleConfig(accountKey("caneHeld", currentAccountHash));
 		secondsInGe = parseDoubleConfig(accountKey("geTimeIn", currentAccountHash));
 		secondsOutsideGe = parseDoubleConfig(accountKey("geTimeOut", currentAccountHash));
+		tilesWalked = parseLongConfig(accountKey("tilesWalked", currentAccountHash));
+		distanceDirty = false;
 
 		lastInventoryCounts.clear();
 		ItemContainer inventory = client.getItemContainer(InventoryID.INV);
@@ -1445,6 +1485,7 @@ public class BankstandingXPPlugin extends Plugin
 		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("caneHeld", currentAccountHash), Double.toString(caneHeldSeconds));
 		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("geTimeIn", currentAccountHash), Double.toString(secondsInGe));
 		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("geTimeOut", currentAccountHash), Double.toString(secondsOutsideGe));
+		configManager.setConfiguration(BankstandingXPConfig.GROUP, accountKey("tilesWalked", currentAccountHash), Long.toString(tilesWalked));
 	}
 
 	private boolean isNearBank(Player player)

@@ -42,7 +42,7 @@ public class BankstandingXPConfigTest
 			String statKey = item.keyName().substring(0, item.keyName().length() - "Always".length());
 			assertTrue(statKey + " should be a stat switch", BankstandingXPConfig.class.getMethod(statKey).getAnnotation(ConfigItem.class) != null);
 		}
-		assertEquals("one for each of the 13 stat lines", 13, stats);
+		assertEquals("one for each of the 14 stat lines", 14, stats);
 	}
 
 	@Test
@@ -72,6 +72,15 @@ public class BankstandingXPConfigTest
 		assertFalse(config.bsGeIn());
 		assertFalse(config.bsGeOut());
 		assertFalse(config.chWealth());
+		assertFalse(config.bsDistance());
+	}
+
+	@Test
+	public void distanceWalkedShowsInTheSidebarInMilesByDefaultAndTheUnitCanBeChosen()
+	{
+		assertTrue(config.showDistance());
+		assertEquals(DistanceUnit.MILES, config.distanceUnit());
+		assertEquals(2, DistanceUnit.values().length);
 	}
 
 	@Test

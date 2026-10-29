@@ -45,6 +45,7 @@ class BankstandingXPPanel extends PluginPanel
 	private final JLabel caneHeldValue = new JLabel();
 	private final JLabel geTimeInValue = new JLabel();
 	private final JLabel geTimeOutValue = new JLabel();
+	private final JLabel distanceValue = new JLabel();
 	private final JLabel leaderboardStatusValue = new JLabel();
 	private final JPanel eventsContainer = new JPanel();
 
@@ -150,6 +151,7 @@ class BankstandingXPPanel extends PluginPanel
 		statsPanel.add(statRow(caneHeldValue));
 		statsPanel.add(statRow(geTimeInValue));
 		statsPanel.add(statRow(geTimeOutValue));
+		statsPanel.add(statRow(distanceValue));
 		statsPanel.add(Box.createVerticalStrut(6));
 		statsPanel.add(statRow(leaderboardStatusValue));
 
@@ -203,6 +205,7 @@ class BankstandingXPPanel extends PluginPanel
 
 		update(0L, BankstandingStatus.NOT_LOGGED_IN);
 		updateStats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+		updateDistance(0, config.showDistance(), config.distanceUnit());
 		updateSyncStatus("Leaderboard: off", Color.GRAY);
 		updateEvents(List.of());
 	}
@@ -248,6 +251,12 @@ class BankstandingXPPanel extends PluginPanel
 		caneHeldValue.setText("Cane held for: " + formatDuration(caneHeldSeconds));
 		geTimeInValue.setText("Time in GE: " + formatDuration(secondsInGe));
 		geTimeOutValue.setText("Time outside GE: " + formatDuration(secondsOutsideGe));
+	}
+
+	void updateDistance(long tilesWalked, boolean show, DistanceUnit unit)
+	{
+		distanceValue.setVisible(show);
+		distanceValue.setText(wrap("Walked: " + Distance.format(tilesWalked, unit)));
 	}
 
 	void updateSyncStatus(String text, Color color)

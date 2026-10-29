@@ -89,6 +89,12 @@ public class BankstandingXPOverlay extends OverlayPanel
 				.left("Time outside GE:").right(StatFormat.duration(plugin.getSecondsOutsideGe())).build());
 			lines++;
 		}
+		if (config.bsDistance() && (near || config.bsDistanceAlways()))
+		{
+			panelComponent.getChildren().add(LineComponent.builder()
+				.left("Walked:").right(Distance.formatShort(plugin.getTilesWalked(), config.distanceUnit())).build());
+			lines++;
+		}
 		if (config.bsProgressBar() && (near || config.bsProgressBarAlways()))
 		{
 			ProgressBarComponent progressBar = new ProgressBarComponent();
